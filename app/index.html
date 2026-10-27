@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>ORYON no celular</title>
+<meta name="description" content="Use a ORYON pelo celular: ela roda no PC e você conversa daqui." />
+<meta name="theme-color" content="#07060f" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="ORYON" />
+<link rel="manifest" href="manifest.webmanifest" />
+<link rel="icon" href="icone-192.png" />
+<link rel="apple-touch-icon" href="apple-touch-icon.png" />
+<style>
+  :root { --fundo: #07060f; --texto: #ece9ff; --suave: #a8a2cc; --apagado: #6f6a96; --linha: rgba(160, 140, 255, .18);
+    --grad: linear-gradient(135deg, #7c5cff 0%, #c056f5 55%, #ff9a3c 100%); --mola: cubic-bezier(.2, .9, .3, 1.25); }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: var(--fundo); color: var(--texto); font: 16px/1.6 "Segoe UI", system-ui, -apple-system, sans-serif; overflow: hidden; }
+  #ceu { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+  .nuvem { position: fixed; border-radius: 50%; filter: blur(80px); pointer-events: none; }
+  .n1 { width: 420px; height: 420px; background: #5b3fd6; left: -160px; top: -140px; opacity: .45; animation: deriva 22s ease-in-out infinite alternate; }
+  .n2 { width: 380px; height: 380px; background: #b03fe0; right: -160px; bottom: -120px; opacity: .35; animation: deriva 28s ease-in-out infinite alternate-reverse; }
+  @keyframes deriva { to { transform: translate(60px, 40px) scale(1.15); } }
+  main { position: relative; z-index: 1; height: 100%; display: grid; place-items: center; padding: max(24px, env(safe-area-inset-top)) 24px max(24px, env(safe-area-inset-bottom)); text-align: center; }
+  .tela { display: none; width: 100%; max-width: 420px; animation: entra .6s var(--mola) both; }
+  .tela.ativa { display: block; }
+  @keyframes entra { from { opacity: 0; transform: translateY(18px) scale(.97); } }
+  .logo { width: 150px; height: 150px; margin: 0 auto 10px; display: block; overflow: visible; filter: drop-shadow(0 0 18px rgba(192, 86, 245, .55)); }
+  .logo .base { stroke: rgba(160, 140, 255, .16); }
+  .logo .traco { stroke-dasharray: 24 76; animation: corre 1.5s linear infinite; }
+  .dormindo .logo .traco { animation-duration: 5s; opacity: .5; }
+  @keyframes corre { to { stroke-dashoffset: -100; } }
+  h1 { margin: 6px 0 6px; font-size: 30px; letter-spacing: .02em; }
+  h1 .gr { background: var(--grad); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  p { color: var(--suave); margin: 0 0 18px; }
+  .botao { display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; padding: 15px 20px; margin: 10px 0 0; border: 0; border-radius: 16px;
+    background: var(--grad); color: #fff; font: 700 16px/1.2 inherit; font-family: inherit; text-decoration: none; cursor: pointer; box-shadow: 0 12px 34px rgba(124, 92, 255, .45); transition: transform .3s var(--mola); }
+  .botao:active { transform: scale(.97); }
+  .botao.leve { background: rgba(26, 21, 52, .7); border: 1px solid var(--linha); box-shadow: none; color: var(--texto); font-weight: 600; }
+  .passos-ios { text-align: left; margin: 14px 0 0; padding: 14px 16px; border-radius: 16px; background: rgba(26, 21, 52, .6); border: 1px solid var(--linha); color: var(--suave); font-size: 15px; }
+  .passos-ios b { color: var(--texto); }
+  .passos-ios svg { vertical-align: -4px; }
+  .status { min-height: 26px; color: var(--suave); font-size: 15px; }
+  .status span { display: inline-block; animation: entra .4s ease both; }
+  .pontos::after { content: "…"; animation: pisca 1.2s infinite; }
+  @keyframes pisca { 50% { opacity: .2; } }
+  .nota { margin-top: 18px; font-size: 13px; color: var(--apagado); }
+  .nota a { color: var(--suave); }
+  @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
+</style>
+</head>
+<body>
+<canvas id="ceu" aria-hidden="true"></canvas>
+<div class="nuvem n1" aria-hidden="true"></div><div class="nuvem n2" aria-hidden="true"></div>
+
+<main>
+  <!-- no navegador: instalar -->
+  <section class="tela" id="telaInstalar">
+    <svg class="logo" viewBox="0 0 48 48" aria-hidden="true"><use href="#infinito"/></svg>
+    <h1>ORYON <span class="gr">no celular</span></h1>
+    <p>Ela roda no PC e você conversa daqui. Instale como app pra abrir direto pela tela inicial.</p>
+    <button class="botao" id="btnInstalar" hidden><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M6 11l6 6 6-6M4 21h16"/></svg>Instalar o app</button>
+    <div class="passos-ios" id="passosIos" hidden>
+      No iPhone: toque em <b>Compartilhar</b>
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#c9b8ff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v7a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7M16 6l-4-4-4 4M12 2v13"/></svg>
+      embaixo e depois em <b>Adicionar à Tela de Início</b>.
+    </div>
+    <div class="passos-ios" id="passosOutro" hidden>Abra o menu do navegador (<b>⋮</b>) e toque em <b>Instalar app</b> ou <b>Adicionar à tela inicial</b>.</div>
+    <button class="botao leve" id="btnAbrir">Abrir agora, sem instalar</button>
+    <div class="nota">Funciona com o PC da ORYON ligado. <a href="../">Voltar ao site</a></div>
+  </section>
+
+  <!-- conectando no PC -->
+  <section class="tela" id="telaConectando">
+    <svg class="logo" viewBox="0 0 48 48" aria-hidden="true"><use href="#infinito"/></svg>
+    <h1>ORYON</h1>
+    <div class="status" id="status"><span class="pontos">Acordando a ORYON</span></div>
+  </section>
+
+  <!-- PC desligado ou sem internet -->
+  <section class="tela dormindo" id="telaDormindo">
+    <svg class="logo" viewBox="0 0 48 48" aria-hidden="true"><use href="#infinito"/></svg>
+    <h1 id="dormeTitulo">A ORYON está dormindo</h1>
+    <p id="dormeTexto">O PC onde ela roda está desligado ou sem o link ligado agora. Assim que ele ligar, ela acorda.</p>
+    <button class="botao" id="btnDenovo">Tentar de novo</button>
+    <div class="nota" id="dormeNota">Tento de novo sozinha a cada 30 segundos.</div>
+  </section>
+</main>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <linearGradient id="gr" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#7c5cff"/><stop offset=".55" stop-color="#c056f5"/><stop offset="1" stop-color="#ff9a3c"/></linearGradient>
+    <symbol id="infinito" viewBox="0 0 48 48">
+      <path class="base" fill="none" stroke-width="5" d="M24 24c-4.2-5.6-7.6-8.4-11.2-8.4a8.4 8.4 0 0 0 0 16.8c3.6 0 7-2.8 11.2-8.4s7.6-8.4 11.2-8.4a8.4 8.4 0 0 1 0 16.8c-3.6 0-7-2.8-11.2-8.4z"/>
+      <path class="traco" pathLength="100" fill="none" stroke="url(#gr)" stroke-width="5.2" stroke-linecap="round" d="M24 24c-4.2-5.6-7.6-8.4-11.2-8.4a8.4 8.4 0 0 0 0 16.8c3.6 0 7-2.8 11.2-8.4s7.6-8.4 11.2-8.4a8.4 8.4 0 0 1 0 16.8c-3.6 0-7-2.8-11.2-8.4z"/>
+    </symbol>
+  </defs>
+</svg>
+
+<script>
+"use strict";
+// O PC publica aqui o link atual do tunel toda vez que ele liga (o endereco do trycloudflare muda a cada vez).
+const PONTE_API = "https://api.github.com/repos/oryon-ia/oryon-ia.github.io/contents/ponte.json";
+const LINK_VALIDO = /^https:\/\/[a-z0-9-]+\.trycloudflare\.com$/;  // so abre link de tunel: nunca manda pra outro site
+const PARADO = matchMedia("(prefers-reduced-motion: reduce)").matches;
+const $ = (id) => document.getElementById(id);
+const INSTALADO = matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
+const IOS = /iPhone|iPad|iPod/i.test(navigator.userAgent) || (/Macintosh/.test(navigator.userAgent) && navigator.maxTouchPoints > 1);
+
+function mostrar(id) { document.querySelectorAll(".tela").forEach((t) => t.classList.toggle("ativa", t.id === id)); }
+function status(texto) { $("status").innerHTML = `<span class="pontos">${texto}</span>`; }
+const espera = (ms) => new Promise((r) => setTimeout(r, ms));
+
+async function lerPonte() {
+  for (const pedir of [
+    () => fetch(PONTE_API, { headers: { Accept: "application/vnd.github.raw+json" }, cache: "no-store" }),
+    () => fetch(`../ponte.json?t=${Date.now()}`, { cache: "no-store" }),
+  ]) {
+    try { const r = await pedir(); if (r.ok) return await r.json(); } catch { /* tenta o proximo caminho */ }
+  }
+  return null;
+}
+async function pcResponde(url) {
+  const tempo = () => AbortSignal.timeout ? AbortSignal.timeout(9000) : undefined;
+  try { return (await fetch(`${url}/api/saude`, { cache: "no-store", signal: tempo() })).ok; }
+  catch {
+    // sem CORS liberado no servidor: o no-cors so diz se o tunel respondeu (nao se o PC esta de pe)
+    try { await fetch(`${url}/api/saude`, { mode: "no-cors", cache: "no-store", signal: tempo() }); return true; } catch { return false; }
+  }
+}
+
+let tentativa = null;
+function dormir(titulo, texto) {
+  $("dormeTitulo").textContent = titulo;
+  $("dormeTexto").textContent = texto;
+  mostrar("telaDormindo");
+  clearTimeout(tentativa);
+  tentativa = setTimeout(conectar, 30000);
+}
+async function conectar() {
+  clearTimeout(tentativa);
+  mostrar("telaConectando");
+  if (!navigator.onLine) return dormir("Sem internet", "O celular está sem conexão. Assim que voltar, eu conecto na ORYON.");
+  status("Procurando o PC da ORYON");
+  const ponte = await lerPonte();
+  const url = ponte && ponte.ligado && String(ponte.url || "").replace(/\/+$/, "");
+  if (!url || !LINK_VALIDO.test(url)) return dormir("A ORYON está dormindo", "O PC onde ela roda está desligado ou sem o link ligado agora. Assim que ele ligar, ela acorda.");
+  status("Acordando a ORYON");
+  if (!(await pcResponde(url))) return dormir("A ORYON está dormindo", "Achei o endereço do PC, mas ele não respondeu. Pode estar desligando ou sem internet.");
+  status("Conectada! Abrindo");
+  await espera(PARADO ? 0 : 500);
+  location.replace(`${url}/?origem=app`);
+}
+
+// instalar: Android/Chrome avisa com beforeinstallprompt; no iPhone mostra o passo a passo
+let pedidoInstalar = null;
+addEventListener("beforeinstallprompt", (e) => {
+  e.preventDefault();
+  pedidoInstalar = e;
+  $("btnInstalar").hidden = false; $("passosOutro").hidden = true;
+});
+$("btnInstalar").addEventListener("click", async () => {
+  if (!pedidoInstalar) return;
+  pedidoInstalar.prompt();
+  await pedidoInstalar.userChoice;
+  pedidoInstalar = null; $("btnInstalar").hidden = true;
+});
+addEventListener("appinstalled", () => { $("btnInstalar").hidden = true; });
+$("btnAbrir").addEventListener("click", conectar);
+$("btnDenovo").addEventListener("click", conectar);
+addEventListener("online", () => { if ($("telaDormindo").classList.contains("ativa")) conectar(); });
+
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});
+if (INSTALADO) conectar();
+else {
+  mostrar("telaInstalar");
+  if (IOS) $("passosIos").hidden = false;
+  else setTimeout(() => { if ($("btnInstalar").hidden) $("passosOutro").hidden = false; }, 2500);  // so se o navegador nao ofereceu o botao
+}
+
+// ceu de estrelas
+const ceu = $("ceu"), cx = ceu.getContext("2d");
+let estrelas = [];
+function medir() {
+  const k = devicePixelRatio || 1;
+  ceu.width = innerWidth * k; ceu.height = innerHeight * k;
+  estrelas = Array.from({ length: Math.round(innerWidth * innerHeight / 5500) }, () => ({ x: Math.random() * ceu.width, y: Math.random() * ceu.height, r: (Math.random() * 1.2 + .3) * k, f: Math.random() * 6.283, v: Math.random() * .1 + .02 }));
+}
+function laco(t) {
+  cx.clearRect(0, 0, ceu.width, ceu.height);
+  for (const e of estrelas) {
+    cx.fillStyle = `rgba(220,210,255,${((.35 + .65 * (.5 + .5 * Math.sin(t / 900 + e.f))) * .8).toFixed(3)})`;
+    cx.beginPath(); cx.arc(e.x, e.y, e.r, 0, 6.283); cx.fill();
+    if (!PARADO) { e.y -= e.v; if (e.y < 0) e.y = ceu.height; }
+  }
+  if (!PARADO) requestAnimationFrame(laco);
+}
+medir(); addEventListener("resize", medir); requestAnimationFrame(laco);
+</script>
+</body>
+</html>

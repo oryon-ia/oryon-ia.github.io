@@ -238,12 +238,14 @@ async function mandarProPC(e) {
   catch { avisar(`Abra ${url} no seu PC com Windows pra baixar.`); }
 }
 if (SISTEMA === "celular") {
-  for (const id of ["baixar", "baixar2"]) { $id(id).href = "#"; $id(id).addEventListener("click", mandarProPC); }
-  $id("baixar").querySelector("svg path").setAttribute("d", "M4 12v7a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7M16 6l-4-4-4 4M12 2v13");
-  $id("rotuloBaixar").textContent = "Mandar pro meu PC";
+  // no celular: o botao principal leva pro app (a ORYON rodando no PC, usada daqui); o segundo manda o .exe pro PC
+  $id("baixar").href = "app/";
+  $id("baixar").querySelector("svg path").setAttribute("d", "M7 2h10a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2zM11 18h2");
+  $id("rotuloBaixar").textContent = "Usar no celular";
+  $id("tamanho").textContent = "instala como app · ela roda no PC";
+  $id("baixar2").href = "#"; $id("baixar2").addEventListener("click", mandarProPC);
   $id("rotuloBaixar2").textContent = "Mandar o link pro meu PC";
-  $id("tamanho").textContent = "a ORYON roda no computador com Windows";
-  $id("infoBaixar").textContent = "Você está no celular: mande o link pro seu PC com Windows 10 ou 11 e baixe por lá.";
+  $id("infoBaixar").textContent = "Pra ter a ORYON no seu próprio computador, mande o link pro seu PC com Windows 10 ou 11 e baixe por lá.";
 } else if (SISTEMA !== "Windows") {
   $id("infoBaixar").textContent = `Você está no ${SISTEMA}: por enquanto a ORYON roda só no Windows 10 ou 11 (64 bits).`;
 }
