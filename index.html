@@ -96,6 +96,10 @@
   .final p { color: var(--suave); }
   footer { position: relative; z-index: 1; text-align: center; padding: 28px 24px 40px; color: var(--apagado); font-size: 13px; border-top: 1px solid rgba(160, 140, 255, .08); }
 
+  .aviso { position: fixed; left: 50%; bottom: 24px; z-index: 10; max-width: calc(100vw - 32px); padding: 12px 18px; border-radius: 14px; text-align: center;
+    background: rgba(28, 22, 56, .96); border: 1px solid var(--linha); box-shadow: 0 14px 40px rgba(0, 0, 0, .45); opacity: 0; pointer-events: none;
+    transform: translate(-50%, 30px); transition: opacity .4s, transform .5s var(--mola); }
+  .aviso.mostra { opacity: 1; transform: translate(-50%, 0); }
   .revela { opacity: 0; transform: translateY(30px); transition: opacity .9s var(--suave-curva), transform .9s var(--suave-curva); transition-delay: var(--d, 0s); }
   .revela.visto { opacity: 1; transform: none; }
 
@@ -129,10 +133,10 @@
         <h1>A IA de programação que <span class="gr">nasce no seu PC</span></h1>
         <p>A ORYON pensa à vista, escreve código avançado, roda os testes e corrige antes de entregar. Ela é treinada do zero e funciona inteira na sua máquina: nada sai do seu computador.</p>
         <div class="acoes">
-          <a class="baixar" id="baixar" href="#instalar"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M6 11l6 6 6-6M4 21h16"/></svg><span>Baixar para Windows<small id="tamanho">versão prévia, grátis</small></span></a>
+          <a class="baixar" id="baixar" href="#instalar"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M6 11l6 6 6-6M4 21h16"/></svg><span><b id="rotuloBaixar">Baixar para Windows</b><small id="tamanho">versão prévia, grátis</small></span></a>
           <a class="secundario" href="#demo">ou veja ela trabalhando ↓</a>
         </div>
-        <div class="info">Windows 10 ou 11 (64 bits) · sem conta, sem assinatura · placa de vídeo opcional</div>
+        <div class="info" id="infoBaixar">Windows 10 ou 11 (64 bits) · sem conta, sem assinatura · placa de vídeo opcional</div>
       </div>
       <div class="cerebro" aria-hidden="true">
         <div class="orbita"><b>async def</b><b>7/7 testes</b><b>+141 −0</b><b>pensando…</b></div>
@@ -197,11 +201,12 @@
     <div class="final">
       <h2 class="revela">Bora ver ela crescer?</h2>
       <p class="revela" style="--d:.1s">Cada atualização traz algo novo: mais inteligência e mais animação.</p>
-      <p class="revela" style="--d:.2s"><a class="baixar" id="baixar2" href="#instalar"><span>Baixar a ORYON</span></a></p>
+      <p class="revela" style="--d:.2s"><a class="baixar" id="baixar2" href="#instalar"><span id="rotuloBaixar2">Baixar a ORYON</span></a></p>
     </div>
   </div>
 </main>
 <footer>ORYON · criada pelo 3F · treinada do zero · roda 100% no seu PC</footer>
+<div class="aviso" id="aviso" role="status" aria-live="polite"></div>
 
 <script>
 "use strict";
@@ -209,15 +214,50 @@
 const GITHUB = "oryon-ia/oryon";
 const PARADO = matchMedia("(prefers-reduced-motion: reduce)").matches;
 
+// Que aparelho e: a ORYON e um app de Windows. No celular (e no iPad, que se diz Mac) nao tem o que baixar,
+// entao o botao manda o link pro PC; no Mac e no Linux avisa que por enquanto e so Windows.
+const UA = navigator.userAgent;
+const CELULAR = (navigator.userAgentData && navigator.userAgentData.mobile) || /Android|iPhone|iPad|iPod|Mobile/i.test(UA)
+  || (/Macintosh/.test(UA) && navigator.maxTouchPoints > 1);
+const SISTEMA = CELULAR ? "celular" : /Windows/i.test(UA) ? "Windows" : /Mac OS X|Macintosh/i.test(UA) ? "Mac" : "Linux";
+const $id = (id) => document.getElementById(id);
+
+function avisar(texto) {
+  const a = $id("aviso");
+  a.textContent = texto; a.classList.add("mostra");
+  clearTimeout(a._t); a._t = setTimeout(() => a.classList.remove("mostra"), 3600);
+}
+async function mandarProPC(e) {
+  e.preventDefault();
+  const url = location.href.split("#")[0];
+  if (navigator.share) {
+    try { await navigator.share({ title: "ORYON", text: "Baixar a ORYON no meu PC (Windows):", url }); return; }
+    catch (erro) { if (erro.name === "AbortError") return; }  // fechou o compartilhar: nada a fazer
+  }
+  try { await navigator.clipboard.writeText(url); avisar("Link copiado! Abra no seu PC com Windows pra baixar."); }
+  catch { avisar(`Abra ${url} no seu PC com Windows pra baixar.`); }
+}
+if (SISTEMA === "celular") {
+  for (const id of ["baixar", "baixar2"]) { $id(id).href = "#"; $id(id).addEventListener("click", mandarProPC); }
+  $id("baixar").querySelector("svg path").setAttribute("d", "M4 12v7a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7M16 6l-4-4-4 4M12 2v13");
+  $id("rotuloBaixar").textContent = "Mandar pro meu PC";
+  $id("rotuloBaixar2").textContent = "Mandar o link pro meu PC";
+  $id("tamanho").textContent = "a ORYON roda no computador com Windows";
+  $id("infoBaixar").textContent = "Você está no celular: mande o link pro seu PC com Windows 10 ou 11 e baixe por lá.";
+} else if (SISTEMA !== "Windows") {
+  $id("infoBaixar").textContent = `Você está no ${SISTEMA}: por enquanto a ORYON roda só no Windows 10 ou 11 (64 bits).`;
+}
+
 // O botao so vira link de download quando o Release tem o ORYON.exe (antes disso leva pro passo a passo).
 if (GITHUB) {
   fetch(`https://api.github.com/repos/${GITHUB}/releases/latest`).then((r) => r.ok ? r.json() : null).then((r) => {
     const exe = r && (r.assets || []).find((a) => a.name === "ORYON.exe");
-    if (!exe) { document.getElementById("tamanho").textContent = "primeira versão chegando"; return; }
-    const versao = r.tag_name.replace(/^v/, "");
-    for (const id of ["baixar", "baixar2"]) document.getElementById(id).href = `https://github.com/${GITHUB}/releases/latest/download/ORYON.exe`;
-    document.getElementById("versao").textContent = versao;
-    document.getElementById("tamanho").textContent = `versão ${versao} · ${Math.round(exe.size / 1048576)} MB · grátis`;
+    const versao = exe ? r.tag_name.replace(/^v/, "") : "";
+    if (versao) $id("versao").textContent = versao;
+    if (SISTEMA === "celular") return;  // no celular o botao continua mandando o link pro PC
+    if (!exe) { $id("tamanho").textContent = "primeira versão chegando"; return; }
+    for (const id of ["baixar", "baixar2"]) $id(id).href = `https://github.com/${GITHUB}/releases/latest/download/ORYON.exe`;
+    $id("tamanho").textContent = `versão ${versao} · ${Math.round(exe.size / 1048576)} MB · grátis`;
   }).catch(() => {});
 }
 
