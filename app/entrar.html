@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="referrer" content="no-referrer" />
+<meta name="robots" content="noindex" />
+<title>Entrando na ORYON</title>
+<meta name="theme-color" content="#07060f" />
+<link rel="icon" href="icone-192.png" />
+<style>
+  :root { --fundo: #07060f; --texto: #ece9ff; --suave: #a8a2cc; --grad: linear-gradient(135deg, #7c5cff 0%, #c056f5 55%, #ff9a3c 100%); }
+  html, body { margin: 0; height: 100%; background: var(--fundo); color: var(--texto); font: 16px/1.6 "Segoe UI", system-ui, -apple-system, sans-serif; }
+  body { display: grid; place-items: center; padding: 24px; text-align: center; box-sizing: border-box;
+    background: radial-gradient(circle at 20% 10%, rgba(91, 63, 214, .45), transparent 55%), radial-gradient(circle at 90% 90%, rgba(176, 63, 224, .35), transparent 55%), var(--fundo); }
+  svg { width: 120px; height: 120px; overflow: visible; filter: drop-shadow(0 0 16px rgba(192, 86, 245, .55)); }
+  .traco { stroke-dasharray: 24 76; animation: corre 1.4s linear infinite; }
+  @keyframes corre { to { stroke-dashoffset: -100; } }
+  h1 { font-size: 24px; margin: 8px 0 6px; } p { color: var(--suave); margin: 0 0 16px; max-width: 360px; }
+  a.botao { display: inline-block; padding: 13px 22px; border-radius: 14px; background: var(--grad); color: #fff; font-weight: 700; text-decoration: none; }
+  @media (prefers-reduced-motion: reduce) { .traco { animation: none; } }
+</style>
+</head>
+<body>
+<main>
+  <svg viewBox="0 0 48 48" aria-hidden="true"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#7c5cff"/><stop offset=".55" stop-color="#c056f5"/><stop offset="1" stop-color="#ff9a3c"/></linearGradient></defs>
+    <path fill="none" stroke="rgba(160,140,255,.16)" stroke-width="5" d="M24 24c-4.2-5.6-7.6-8.4-11.2-8.4a8.4 8.4 0 0 0 0 16.8c3.6 0 7-2.8 11.2-8.4s7.6-8.4 11.2-8.4a8.4 8.4 0 0 1 0 16.8c-3.6 0-7-2.8-11.2-8.4z"/>
+    <path class="traco" pathLength="100" fill="none" stroke="url(#g)" stroke-width="5.2" stroke-linecap="round" d="M24 24c-4.2-5.6-7.6-8.4-11.2-8.4a8.4 8.4 0 0 0 0 16.8c3.6 0 7-2.8 11.2-8.4s7.6-8.4 11.2-8.4a8.4 8.4 0 0 1 0 16.8c-3.6 0-7-2.8-11.2-8.4z"/></svg>
+  <h1 id="titulo">Entrando na ORYON…</h1>
+  <p id="texto">Levando o seu login pro PC onde ela roda.</p>
+  <a class="botao" id="voltar" href="./" hidden>Voltar pro app</a>
+</main>
+<script>
+"use strict";
+// Retorno do login do Google (o redirect_uri fixo do OAuth). Esta pagina so REPASSA: manda o code/state pro
+// callback do PC no link atual da ponte, que confere o state e troca o code com o segredo que so ele tem.
+// Nada e guardado aqui; o service worker nao guarda esta pagina; o link so pode ser do tunel da Cloudflare.
+const PONTE_API = "https://api.github.com/repos/oryon-ia/oryon-ia.github.io/contents/ponte.json";
+const LINK_VALIDO = /^https:\/\/[a-z0-9-]+\.trycloudflare\.com$/;
+const consulta = location.search;
+history.replaceState(null, "", location.pathname);  // tira o code da barra e do historico na hora
+
+function parar(titulo, texto) {
+  document.getElementById("titulo").textContent = titulo;
+  document.getElementById("texto").textContent = texto;
+  document.getElementById("voltar").hidden = false;
+  document.querySelector(".traco").style.animation = "none";
+}
+
+(async () => {
+  const p = new URLSearchParams(consulta);
+  if (!p.get("state") || !(p.get("code") || p.get("error"))) {
+    return parar("Nada pra entrar", "Esta página só funciona voltando do login do Google pela ORYON.");
+  }
+  // a API e a mais fresca, mas tem limite de 60 por hora por IP (rede compartilhada estoura): o site e o reserva
+  let ponte = null;
+  for (const pedir of [
+    () => fetch(PONTE_API, { headers: { Accept: "application/vnd.github.raw+json" }, cache: "no-store" }),
+    () => fetch(`../ponte.json?t=${Date.now()}`, { cache: "no-store" }),
+  ]) {
+    try { const r = await pedir(); if (r.ok) { ponte = await r.json(); break; } } catch { /* tenta o proximo */ }
+  }
+  const url = ponte && ponte.ligado && String(ponte.url || "").replace(/\/+$/, "");
+  if (!url || !LINK_VALIDO.test(url)) {
+    return parar("A ORYON está dormindo", "O PC onde ela roda está desligado ou sem o link ligado. Ligue o PC e entre de novo pelo app.");
+  }
+  location.replace(`${url}/auth/google/callback${consulta}`);
+})();
+</script>
+</body>
+</html>

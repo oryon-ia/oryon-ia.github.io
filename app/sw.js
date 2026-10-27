@@ -1,6 +1,6 @@
 // App da ORYON no celular: guarda a casca (tela de abertura, icones) pra abrir mesmo sem internet.
 // O link do PC (ponte) e a ORYON em si nunca vem do cache: sempre da rede.
-const CASCA = "oryon-app-v1";
+const CASCA = "oryon-app-v2";
 const ARQUIVOS = ["./", "./index.html", "./manifest.webmanifest", "./icone-192.png", "./icone-512.png", "./apple-touch-icon.png"];
 
 self.addEventListener("install", (e) => {
@@ -14,7 +14,9 @@ self.addEventListener("activate", (e) => {
 
 self.addEventListener("fetch", (e) => {
   const url = new URL(e.request.url);
-  if (e.request.method !== "GET" || url.origin !== self.location.origin || url.pathname.endsWith("ponte.json")) return;
+  // entrar.html traz o code do login do Google na URL: nunca passa pelo cache
+  if (e.request.method !== "GET" || url.origin !== self.location.origin || url.pathname.endsWith("ponte.json")
+      || url.pathname.endsWith("entrar.html")) return;
   // casca: rede primeiro (pega versao nova), cache se estiver sem internet
   e.respondWith(fetch(e.request).then((r) => {
     const copia = r.clone();
