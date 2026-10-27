@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>ORYON — a IA de programação que nasce no seu PC</title>
+<meta name="description" content="ORYON: IA de programação em português, treinada do zero, que roda inteira no seu computador. Baixe a versão prévia para Windows." />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%237c5cff'/%3E%3Cstop offset='.55' stop-color='%23c056f5'/%3E%3Cstop offset='1' stop-color='%23ff9a3c'/%3E%3C/linearGradient%3E%3C/defs%3E%3Cpath fill='none' stroke='url(%23g)' stroke-width='5.2' stroke-linecap='round' d='M24 24c-4.2-5.6-7.6-8.4-11.2-8.4a8.4 8.4 0 0 0 0 16.8c3.6 0 7-2.8 11.2-8.4s7.6-8.4 11.2-8.4a8.4 8.4 0 0 1 0 16.8c-3.6 0-7-2.8-11.2-8.4z'/%3E%3C/svg%3E" />
+<style>
+  :root {
+    --fundo: #07060f; --texto: #ece9ff; --suave: #a8a2cc; --apagado: #6f6a96; --linha: rgba(160, 140, 255, .17);
+    --vidro: rgba(22, 18, 44, .55); --verde: #3ee6a8;
+    --grad: linear-gradient(135deg, #7c5cff 0%, #c056f5 55%, #ff9a3c 100%);
+    --mola: cubic-bezier(.2, .9, .3, 1.25); --suave-curva: cubic-bezier(.22, 1, .36, 1);
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; overflow-x: clip; }  /* as etiquetas em orbita passam da borda no celular: corta sem rolagem lateral */
+  body { margin: 0; background: var(--fundo); color: var(--texto); font: 16px/1.65 "Segoe UI", system-ui, -apple-system, sans-serif; overflow-x: hidden; }
+  a { color: inherit; }
+  #ceu { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 0; }
+  .nuvem { position: fixed; border-radius: 50%; filter: blur(100px); pointer-events: none; z-index: 0; will-change: transform; }
+  .n1 { width: 680px; height: 680px; background: #5b3fd6; left: -200px; top: -240px; opacity: .38; animation: deriva 26s ease-in-out infinite alternate; }
+  .n2 { width: 560px; height: 560px; background: #b03fe0; right: -180px; top: 30%; opacity: .3; animation: deriva 32s ease-in-out infinite alternate-reverse; }
+  .n3 { width: 520px; height: 520px; background: #ff8a3c; left: 30%; top: 120%; opacity: .16; animation: deriva 38s ease-in-out infinite alternate; }
+  @keyframes deriva { to { transform: translate(90px, 70px) scale(1.15); } }
+  main { position: relative; z-index: 1; }
+  .faixa { max-width: 1120px; margin: 0 auto; padding: 0 24px; }
+  .vidro { background: var(--vidro); border: 1px solid var(--linha); backdrop-filter: blur(18px) saturate(140%); -webkit-backdrop-filter: blur(18px) saturate(140%); }
+
+  nav { display: flex; align-items: center; gap: 12px; padding: 20px 0; }
+  .marca { display: flex; align-items: center; gap: 10px; font-weight: 700; letter-spacing: .22em; text-decoration: none; }
+  .marca svg { width: 30px; filter: drop-shadow(0 0 8px rgba(192, 86, 245, .6)); }
+  nav .links { margin-left: auto; display: flex; gap: 22px; font-size: 14px; color: var(--suave); }
+  nav .links a { text-decoration: none; transition: color .2s; } nav .links a:hover { color: var(--texto); }
+
+  .heroi { display: grid; grid-template-columns: 1.05fr .95fr; gap: 40px; align-items: center; padding: 56px 0 70px; min-height: 78vh; }
+  .selo { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; padding: 6px 14px; border-radius: 99px; color: var(--suave); }
+  .selo i { width: 8px; height: 8px; border-radius: 50%; background: var(--verde); box-shadow: 0 0 10px var(--verde); animation: pisca 1.6s infinite; }
+  @keyframes pisca { 50% { opacity: .3; } }
+  h1 { font-size: clamp(40px, 6vw, 72px); line-height: 1.02; margin: 18px 0 18px; letter-spacing: -.02em; }
+  h1 .gr { background: var(--grad); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .heroi p { font-size: 19px; color: var(--suave); max-width: 540px; margin: 0 0 30px; }
+  .acoes { display: flex; flex-wrap: wrap; gap: 14px; align-items: center; }
+  .baixar { position: relative; display: inline-flex; align-items: center; gap: 12px; padding: 16px 28px; border-radius: 18px; background: var(--grad); color: #fff; font-weight: 700; font-size: 17px; text-decoration: none; box-shadow: 0 14px 40px rgba(124, 92, 255, .45); transition: transform .35s var(--mola), box-shadow .35s; overflow: hidden; }
+  .baixar::after { content: ""; position: absolute; inset: 0; background: linear-gradient(105deg, transparent 35%, rgba(255, 255, 255, .45) 50%, transparent 65%); transform: translateX(-100%); animation: varre 3.2s ease-in-out infinite; }
+  @keyframes varre { 60%, 100% { transform: translateX(100%); } }
+  .baixar:hover { transform: translateY(-3px) scale(1.03); box-shadow: 0 20px 50px rgba(192, 86, 245, .55); }
+  .baixar small { display: block; font-weight: 500; font-size: 12px; opacity: .85; }
+  .secundario { color: var(--suave); font-size: 15px; text-decoration: none; border-bottom: 1px dashed var(--apagado); }
+  .info { margin-top: 18px; font-size: 13px; color: var(--apagado); }
+
+  .cerebro { position: relative; aspect-ratio: 1; max-width: 460px; justify-self: center; width: 100%; }
+  .cerebro svg { width: 100%; height: 100%; overflow: visible; }
+  .cerebro .base { stroke: rgba(160, 140, 255, .14); }
+  .cerebro .traco { stroke-dasharray: 26 74; animation: corre 2.4s linear infinite; filter: drop-shadow(0 0 10px #c056f5); }
+  @keyframes corre { to { stroke-dashoffset: -100; } }
+  .orbita { position: absolute; inset: 8%; border-radius: 50%; border: 1px dashed rgba(160, 140, 255, .18); animation: gira 40s linear infinite; }
+  .orbita.o2 { inset: -2%; animation-duration: 60s; animation-direction: reverse; }
+  .orbita b { position: absolute; top: -9px; left: 50%; padding: 3px 10px; border-radius: 99px; font: 600 12px/1.4 "Cascadia Code", Consolas, monospace; color: #fff; background: rgba(28, 22, 56, .9); border: 1px solid var(--linha); white-space: nowrap; }
+  .orbita b:nth-child(2) { top: auto; bottom: -9px; } .orbita b:nth-child(3) { top: 48%; left: -30px; } .orbita b:nth-child(4) { top: 48%; left: auto; right: -30px; }
+  @keyframes gira { to { transform: rotate(360deg); } }
+  .orbita b { animation: contraGira 40s linear infinite; } .orbita.o2 b { animation: contraGira 60s linear infinite reverse; }
+  @keyframes contraGira { to { transform: rotate(-360deg); } }
+
+  section { padding: 70px 0; }
+  h2 { font-size: clamp(28px, 4vw, 42px); margin: 0 0 10px; letter-spacing: -.01em; }
+  .sub { color: var(--suave); margin: 0 0 34px; max-width: 640px; }
+  .tela-demo { border-radius: 24px; padding: 10px; box-shadow: 0 30px 80px rgba(0, 0, 0, .5), 0 0 0 1px var(--linha); }
+  .tela-demo .barra { display: flex; gap: 7px; padding: 6px 8px 12px; }
+  .tela-demo .barra i { width: 11px; height: 11px; border-radius: 50%; background: #ff5f57; } .tela-demo .barra i:nth-child(2) { background: #febc2e; } .tela-demo .barra i:nth-child(3) { background: #28c840; }
+  .tela-demo iframe { display: block; width: 100%; height: min(72vh, 680px); border: 0; border-radius: 16px; background: var(--fundo); }
+
+  .grade { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; }
+  .cartao { border-radius: 20px; padding: 24px; transition: transform .45s var(--mola), border-color .3s; }
+  .cartao:hover { transform: translateY(-6px); border-color: rgba(192, 86, 245, .5); }
+  .cartao .ico { width: 46px; height: 46px; border-radius: 14px; display: grid; place-items: center; background: var(--grad); box-shadow: 0 8px 24px rgba(124, 92, 255, .35); margin-bottom: 14px; }
+  .cartao .ico svg { width: 22px; height: 22px; }
+  .cartao h3 { margin: 0 0 6px; font-size: 18px; } .cartao p { margin: 0; color: var(--suave); font-size: 15px; }
+
+  .duas { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .lista { border-radius: 20px; padding: 26px; }
+  .lista h3 { margin: 0 0 12px; } .lista ul { margin: 0; padding: 0; list-style: none; }
+  .lista li { display: flex; gap: 10px; padding: 7px 0; color: var(--suave); border-bottom: 1px solid rgba(160, 140, 255, .08); }
+  .lista li:last-child { border: 0; } .lista li b { color: var(--texto); font-weight: 600; }
+  .lista .ok::before { content: "✓"; color: var(--verde); font-weight: 700; } .lista .vem::before { content: "◌"; color: #c056f5; font-weight: 700; }
+
+  .passos { counter-reset: p; display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 16px; }
+  .passo { border-radius: 20px; padding: 22px; position: relative; }
+  .passo::before { counter-increment: p; content: counter(p); position: absolute; top: -14px; left: 20px; width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; background: var(--grad); font-weight: 700; box-shadow: 0 6px 18px rgba(124, 92, 255, .45); }
+  .passo h3 { margin: 6px 0 6px; font-size: 16px; } .passo p { margin: 0; color: var(--suave); font-size: 14.5px; }
+  .janela-win { margin-top: 14px; border-radius: 10px; background: #0f4c81; padding: 12px; font: 13px/1.4 "Segoe UI", sans-serif; color: #fff; }
+  .janela-win b { display: block; font-size: 15px; margin-bottom: 4px; } .janela-win u { color: #cfe6ff; }
+  .janela-win span { display: inline-block; margin-top: 8px; padding: 4px 12px; border: 1px solid #fff; border-radius: 3px; }
+
+  .final { text-align: center; padding: 90px 0 60px; }
+  .final p { color: var(--suave); }
+  footer { position: relative; z-index: 1; text-align: center; padding: 28px 24px 40px; color: var(--apagado); font-size: 13px; border-top: 1px solid rgba(160, 140, 255, .08); }
+
+  .revela { opacity: 0; transform: translateY(30px); transition: opacity .9s var(--suave-curva), transform .9s var(--suave-curva); transition-delay: var(--d, 0s); }
+  .revela.visto { opacity: 1; transform: none; }
+
+  @media (max-width: 860px) {
+    .heroi { grid-template-columns: 1fr; padding-top: 24px; min-height: 0; text-align: center; }
+    .heroi p { margin-left: auto; margin-right: auto; } .acoes { justify-content: center; }
+    .cerebro { max-width: 300px; order: -1; } .duas { grid-template-columns: 1fr; } nav .links { display: none; }
+    .orbita b:nth-child(3), .orbita b:nth-child(4) { display: none; }
+    .tela-demo iframe { height: 620px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation: none !important; transition: none !important; }
+    .revela { opacity: 1; transform: none; }
+  }
+</style>
+</head>
+<body>
+<canvas id="ceu" aria-hidden="true"></canvas>
+<div class="nuvem n1" aria-hidden="true"></div><div class="nuvem n2" aria-hidden="true"></div><div class="nuvem n3" aria-hidden="true"></div>
+
+<main>
+  <div class="faixa">
+    <nav>
+      <a class="marca" href="#"><svg viewBox="0 0 48 48" aria-hidden="true"><defs><linearGradient id="g1" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#7c5cff"/><stop offset=".55" stop-color="#c056f5"/><stop offset="1" stop-color="#ff9a3c"/></linearGradient></defs><path fill="none" stroke="url(#g1)" stroke-width="5.2" stroke-linecap="round" d="M24 24c-4.2-5.6-7.6-8.4-11.2-8.4a8.4 8.4 0 0 0 0 16.8c3.6 0 7-2.8 11.2-8.4s7.6-8.4 11.2-8.4a8.4 8.4 0 0 1 0 16.8c-3.6 0-7-2.8-11.2-8.4z"/></svg>ORYON</a>
+      <div class="links"><a href="#demo">Ver ao vivo</a><a href="#recursos">Recursos</a><a href="#previa">A prévia</a><a href="#instalar">Instalar</a></div>
+    </nav>
+
+    <header class="heroi">
+      <div>
+        <span class="selo vidro"><i></i>Versão prévia <span id="versao">2.1.0</span> · Windows</span>
+        <h1>A IA de programação que <span class="gr">nasce no seu PC</span></h1>
+        <p>A ORYON pensa à vista, escreve código avançado, roda os testes e corrige antes de entregar. Ela é treinada do zero e funciona inteira na sua máquina: nada sai do seu computador.</p>
+        <div class="acoes">
+          <a class="baixar" id="baixar" href="#instalar"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M6 11l6 6 6-6M4 21h16"/></svg><span>Baixar para Windows<small id="tamanho">versão prévia, grátis</small></span></a>
+          <a class="secundario" href="#demo">ou veja ela trabalhando ↓</a>
+        </div>
+        <div class="info">Windows 10 ou 11 (64 bits) · sem conta, sem assinatura · placa de vídeo opcional</div>
+      </div>
+      <div class="cerebro" aria-hidden="true">
+        <div class="orbita"><b>async def</b><b>7/7 testes</b><b>+141 −0</b><b>pensando…</b></div>
+        <div class="orbita o2"><b>Generic[K, V]</b><b>asyncio.Lock</b></div>
+        <svg viewBox="0 0 48 48"><defs><linearGradient id="g2" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#7c5cff"/><stop offset=".55" stop-color="#c056f5"/><stop offset="1" stop-color="#ff9a3c"/></linearGradient></defs>
+          <path class="base" fill="none" stroke-width="5" d="M24 24c-4.2-5.6-7.6-8.4-11.2-8.4a8.4 8.4 0 0 0 0 16.8c3.6 0 7-2.8 11.2-8.4s7.6-8.4 11.2-8.4a8.4 8.4 0 0 1 0 16.8c-3.6 0-7-2.8-11.2-8.4z"/>
+          <path class="traco" pathLength="100" fill="none" stroke="url(#g2)" stroke-width="5.2" stroke-linecap="round" d="M24 24c-4.2-5.6-7.6-8.4-11.2-8.4a8.4 8.4 0 0 0 0 16.8c3.6 0 7-2.8 11.2-8.4s7.6-8.4 11.2-8.4a8.4 8.4 0 0 1 0 16.8c-3.6 0-7-2.8-11.2-8.4z"/>
+        </svg>
+      </div>
+    </header>
+
+    <section id="demo">
+      <h2 class="revela">Veja ela trabalhando</h2>
+      <p class="sub revela" style="--d:.1s">É a tela de verdade da ORYON, rodando aqui: ela pensa, cria os arquivos, roda os testes, erra uma borda, corrige e entrega com tudo passando.</p>
+      <div class="tela-demo vidro revela" style="--d:.2s"><div class="barra"><i></i><i></i><i></i></div><iframe src="demo.html" title="Demonstração da ORYON trabalhando" loading="lazy"></iframe></div>
+    </section>
+
+    <section id="recursos">
+      <h2 class="revela">Feita pra quem programa de verdade</h2>
+      <p class="sub revela" style="--d:.1s">Nada de exercício de aula. A ORYON é treinada com código avançado real e só entrega o que passou nos testes.</p>
+      <div class="grade">
+        <div class="cartao vidro revela"><div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/></svg></div><h3>Pensa à vista</h3><p>O raciocínio aparece enquanto ela pensa, e cada passo vira uma estação no trilho.</p></div>
+        <div class="cartao vidro revela" style="--d:.08s"><div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M4 20l4-1 11-11-3-3L5 16z"/></svg></div><h3>Mostra o que editou</h3><p>A bancada viva mostra o arquivo, o diff linha por linha e o terminal na hora.</p></div>
+        <div class="cartao vidro revela" style="--d:.16s"><div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M9 3h6M10 3v6l-5 9a2 2 0 0 0 2 3h10a2 2 0 0 0 2-3l-5-9V3"/></svg></div><h3>Testa antes de entregar</h3><p>Ela escreve os testes, roda num ambiente isolado e corrige sozinha até passar.</p></div>
+        <div class="cartao vidro revela" style="--d:.24s"><div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M16 18l6-6-6-6M8 6l-6 6 6 6"/></svg></div><h3>Só código avançado</h3><p>Tipos genéricos, concorrência, arquitetura de verdade. Uma régua barra o que é básico.</p></div>
+        <div class="cartao vidro revela" style="--d:.32s"><div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M12 2v4M12 18v4M4.9 4.9l2.8 2.8M16.3 16.3l2.8 2.8M2 12h4M18 12h4"/></svg></div><h3>Treinada do zero</h3><p>Sem modelo pronto de ninguém dentro: o cérebro, o tokenizador e o treino são dela.</p></div>
+        <div class="cartao vidro revela" style="--d:.4s"><div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div><h3>Tudo no seu PC</h3><p>Conversas, projetos e memória ficam na sua máquina. Funciona sem internet.</p></div>
+      </div>
+    </section>
+
+    <section id="previa">
+      <h2 class="revela">O que a prévia já faz</h2>
+      <p class="sub revela" style="--d:.1s">Sinceridade: a ORYON está crescendo. O modelo de fala do zero está no treino agora. Quando ele passar nas provas, chega pra você numa atualização automática.</p>
+      <div class="duas">
+        <div class="lista vidro revela"><h3>Já funciona</h3><ul>
+          <li class="ok"><span><b>Tela nova Nebulosa</b>: pensamento, bancada viva e trilho animados</span></li>
+          <li class="ok"><span><b>/demo</b>: veja o modo ao vivo completo</span></li>
+          <li class="ok"><span><b>Cérebro próprio</b>: entende pedidos e comandos</span></li>
+          <li class="ok"><span><b>Projetos de jogo Unity</b>: cria e mexe na cena (com Unity instalado)</span></li>
+          <li class="ok"><span><b>Atualização pelo app</b>: a faixa "Atualizar" aparece no topo</span></li>
+        </ul></div>
+        <div class="lista vidro revela" style="--d:.1s"><h3>Vem nas próximas atualizações</h3><ul>
+          <li class="vem"><span><b>Fala e programação</b> com o modelo treinado do zero</span></li>
+          <li class="vem"><span><b>Laço de melhoria</b>: só o código que passa vira aula</span></li>
+          <li class="vem"><span><b>Mais animações</b>: cartas de ação, rebobinar o raciocínio, modo foco</span></li>
+          <li class="vem"><span><b>JavaScript, SQL e C#</b> em nível avançado</span></li>
+        </ul></div>
+      </div>
+    </section>
+
+    <section id="instalar">
+      <h2 class="revela">Instalar em 3 passos</h2>
+      <p class="sub revela" style="--d:.1s">A ORYON ainda não tem assinatura digital (um certificado custa caro pra um projeto independente), então o Windows mostra um aviso na primeira vez. É normal.</p>
+      <div class="passos">
+        <div class="passo vidro revela"><h3>Baixe o ORYON.exe</h3><p>Clique em "Baixar para Windows" e salve o arquivo.</p></div>
+        <div class="passo vidro revela" style="--d:.1s"><h3>Passe pelo aviso do Windows</h3><p>Clique em <b>Mais informações</b> e depois em <b>Executar assim mesmo</b>.</p>
+          <div class="janela-win"><b>O Windows protegeu o computador</b>O Microsoft Defender SmartScreen impediu que um aplicativo desconhecido fosse iniciado. <u>Mais informações</u><br><span>Executar assim mesmo</span></div></div>
+        <div class="passo vidro revela" style="--d:.2s"><h3>Pronto</h3><p>A ORYON abre no seu navegador. Digite <b>/demo</b> pra ver tudo funcionando.</p></div>
+      </div>
+    </section>
+
+    <div class="final">
+      <h2 class="revela">Bora ver ela crescer?</h2>
+      <p class="revela" style="--d:.1s">Cada atualização traz algo novo: mais inteligência e mais animação.</p>
+      <p class="revela" style="--d:.2s"><a class="baixar" id="baixar2" href="#instalar"><span>Baixar a ORYON</span></a></p>
+    </div>
+  </div>
+</main>
+<footer>ORYON · criada pelo 3F · treinada do zero · roda 100% no seu PC</footer>
+
+<script>
+"use strict";
+// Repositorio publico de downloads (preencher ao publicar: "usuario/repositorio").
+const GITHUB = "oryon-ia/oryon";
+const PARADO = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+// O botao so vira link de download quando o Release tem o ORYON.exe (antes disso leva pro passo a passo).
+if (GITHUB) {
+  fetch(`https://api.github.com/repos/${GITHUB}/releases/latest`).then((r) => r.ok ? r.json() : null).then((r) => {
+    const exe = r && (r.assets || []).find((a) => a.name === "ORYON.exe");
+    if (!exe) { document.getElementById("tamanho").textContent = "primeira versão chegando"; return; }
+    const versao = r.tag_name.replace(/^v/, "");
+    for (const id of ["baixar", "baixar2"]) document.getElementById(id).href = `https://github.com/${GITHUB}/releases/latest/download/ORYON.exe`;
+    document.getElementById("versao").textContent = versao;
+    document.getElementById("tamanho").textContent = `versão ${versao} · ${Math.round(exe.size / 1048576)} MB · grátis`;
+  }).catch(() => {});
+}
+
+// ceu: estrelas piscando e subindo devagar
+const ceu = document.getElementById("ceu"), cx = ceu.getContext("2d");
+let estrelas = [];
+function medir() {
+  const k = devicePixelRatio || 1;
+  ceu.width = innerWidth * k; ceu.height = innerHeight * k;
+  estrelas = Array.from({ length: Math.round(innerWidth * innerHeight / 6500) }, () => ({
+    x: Math.random() * ceu.width, y: Math.random() * ceu.height, r: (Math.random() * 1.3 + .2) * k, f: Math.random() * 6.283, v: Math.random() * .1 + .02,
+  }));
+}
+function laco(t) {
+  cx.clearRect(0, 0, ceu.width, ceu.height);
+  for (const e of estrelas) {
+    cx.fillStyle = `rgba(220,210,255,${((.35 + .65 * (.5 + .5 * Math.sin(t / 900 + e.f))) * .8).toFixed(3)})`;
+    cx.beginPath(); cx.arc(e.x, e.y, e.r, 0, 6.283); cx.fill();
+    if (!PARADO) { e.y -= e.v; if (e.y < 0) e.y = ceu.height; }
+  }
+  if (!PARADO) requestAnimationFrame(laco);
+}
+medir(); addEventListener("resize", medir); requestAnimationFrame(laco);
+
+// revela as secoes quando entram na tela
+const obs = new IntersectionObserver((itens) => {
+  for (const it of itens) if (it.isIntersecting) { it.target.classList.add("visto"); obs.unobserve(it.target); }
+}, { threshold: .15 });
+document.querySelectorAll(".revela").forEach((el) => obs.observe(el));
+</script>
+</body>
+</html>

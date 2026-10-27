@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>ORYON — protótipo Nebulosa</title>
+<style>
+  @property --ang { syntax: "<angle>"; inherits: false; initial-value: 0deg; }
+  :root {
+    --fundo: #07060f; --vidro: rgba(22, 18, 44, .55); --vidro-forte: rgba(28, 22, 56, .78); --linha: rgba(160, 140, 255, .16);
+    --texto: #ece9ff; --suave: #a59fc9; --apagado: #6d6893;
+    --roxo: #7c5cff; --rosa: #c056f5; --laranja: #ff9a3c; --verde: #3ee6a8; --vermelho: #ff5d7a;
+    --grad: linear-gradient(135deg, #7c5cff 0%, #c056f5 55%, #ff9a3c 100%);
+    --mola: cubic-bezier(.2, .9, .3, 1.25); --suavizar: cubic-bezier(.22, 1, .36, 1);
+    --mono: "Cascadia Code", "JetBrains Mono", Consolas, monospace;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: var(--fundo); color: var(--texto); font: 15px/1.6 "Segoe UI", system-ui, sans-serif; overflow: hidden; }
+  #ceu, #confete { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+  #confete { z-index: 50; }
+  .nebula { position: fixed; border-radius: 50%; filter: blur(90px); opacity: .38; pointer-events: none; will-change: transform; }
+  .n1 { width: 620px; height: 620px; background: #5b3fd6; left: -160px; top: -200px; animation: deriva 26s ease-in-out infinite alternate; }
+  .n2 { width: 520px; height: 520px; background: #b03fe0; right: -140px; top: 20%; animation: deriva 32s ease-in-out infinite alternate-reverse; }
+  .n3 { width: 460px; height: 460px; background: #ff8a3c; left: 35%; bottom: -260px; opacity: .22; animation: deriva 38s ease-in-out infinite alternate; }
+  @keyframes deriva { to { transform: translate(80px, 60px) scale(1.15); } }
+
+  .app { position: relative; z-index: 1; display: grid; grid-template-columns: 250px minmax(0, 1fr) 0px; grid-template-rows: minmax(0, 1fr); height: 100vh; height: 100dvh; transition: grid-template-columns .7s var(--suavizar); }
+  .app.trabalhando { grid-template-columns: 250px minmax(0, 1fr) 380px; }
+  .vidro { background: var(--vidro); backdrop-filter: blur(18px) saturate(140%); -webkit-backdrop-filter: blur(18px) saturate(140%); border: 1px solid var(--linha); }
+
+  /* ---------- trilho lateral: marca, constelacao, aprendizado ---------- */
+  .rail { margin: 12px 0 12px 12px; border-radius: 22px; padding: 18px 16px; display: flex; flex-direction: column; gap: 16px; overflow: hidden; }
+  .marca { display: flex; align-items: center; gap: 10px; font-weight: 700; letter-spacing: .22em; font-size: 15px; }
+  .marca svg { width: 34px; filter: drop-shadow(0 0 8px rgba(192, 86, 245, .6)); }
+  .nova { all: unset; cursor: pointer; padding: 10px 14px; border-radius: 14px; background: var(--grad); color: #fff; font-weight: 600; text-align: center; box-shadow: 0 6px 24px rgba(124, 92, 255, .35); transition: transform .3s var(--mola); }
+  .nova:hover { transform: translateY(-2px) scale(1.02); }
+  .rot { font-size: 11px; letter-spacing: .16em; text-transform: uppercase; color: var(--apagado); }
+  #const { width: 100%; height: 150px; }
+  #const .estrela { transform-box: fill-box; transform-origin: center; }
+  #const .estrela.nasce { animation: nasce 1.2s var(--mola) both; }
+  @keyframes nasce { 0% { transform: scale(0); opacity: 0; } 60% { transform: scale(2.2); opacity: 1; } 100% { transform: scale(1); } }
+  #const text { fill: var(--suave); font-size: 9px; }
+  #const .liga { stroke: rgba(175, 160, 255, .35); stroke-width: .8; fill: none; stroke-dasharray: 200; stroke-dashoffset: 0; }
+  #const .liga.nova-liga { animation: traca 1.4s ease both; }
+  @keyframes traca { from { stroke-dashoffset: 200; } }
+  .convs { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--suave); }
+  .convs div { padding: 6px 10px; border-radius: 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .convs .ativa { background: rgba(124, 92, 255, .16); color: var(--texto); }
+  .habil { display: flex; flex-direction: column; gap: 10px; margin-top: auto; }
+  .habil div { font-size: 12px; color: var(--suave); }
+  .habil i { display: block; height: 6px; border-radius: 4px; background: rgba(255, 255, 255, .06); margin-top: 4px; overflow: hidden; }
+  .habil b { display: block; height: 100%; width: 0; border-radius: 4px; background: var(--grad); transition: width 1.6s var(--suavizar); box-shadow: 0 0 12px rgba(192, 86, 245, .6); }
+
+  /* ---------- palco: topo, conversa, caixa ---------- */
+  .palco { position: relative; display: flex; flex-direction: column; min-width: 0; min-height: 0; }
+  .topo { display: flex; align-items: center; gap: 12px; padding: 18px 28px 8px; }
+  .topo h1 { margin: 0; font-size: 16px; font-weight: 600; }
+  #status { margin-left: auto; font-size: 12px; padding: 5px 12px; border-radius: 99px; color: var(--suave); display: flex; align-items: center; gap: 8px; }
+  #status i { width: 8px; height: 8px; border-radius: 50%; background: var(--verde); box-shadow: 0 0 10px var(--verde); }
+  #status.vivo i { background: var(--rosa); box-shadow: 0 0 12px var(--rosa); animation: piscaLuz 1s infinite; }
+  @keyframes piscaLuz { 50% { opacity: .3; } }
+  .conversa { flex: 1; overflow: hidden auto; padding: 10px 28px 150px; scroll-behavior: smooth; scrollbar-width: none; }
+  .bloco { max-width: 760px; margin: 0 auto 22px; }
+  .eu { display: flex; justify-content: flex-end; }
+  .eu p { margin: 0; padding: 12px 18px; border-radius: 20px 20px 6px 20px; background: var(--grad); color: #fff; box-shadow: 0 10px 30px rgba(124, 92, 255, .3); animation: sobe .7s var(--mola) both; }
+  @keyframes sobe { from { opacity: 0; transform: translateY(40px) scale(.9); } }
+
+  .ia { position: relative; padding-left: 64px; }
+  .nucleo { position: absolute; left: 0; top: -6px; width: 52px; height: 52px; }
+  .nucleo svg { width: 52px; height: 52px; overflow: visible; }
+  .nucleo .base { stroke: rgba(160, 140, 255, .25); }
+  .nucleo .traco { stroke-dasharray: 34 120; animation: corre 1.4s linear infinite; filter: drop-shadow(0 0 6px #c056f5); }
+  .ia.pronta .nucleo .traco { stroke-dasharray: none; animation: none; }
+  @keyframes corre { to { stroke-dashoffset: -154; } }
+  .cab { display: flex; align-items: center; gap: 10px; min-height: 40px; font-size: 14px; color: var(--suave); }
+  .cab .agora { color: var(--texto); font-weight: 500; transition: opacity .25s; }
+  .ia.pensando .cab .agora { background: linear-gradient(90deg, var(--suave) 0%, #fff 50%, var(--suave) 100%) 0 0 / 200% 100%; -webkit-background-clip: text; background-clip: text; color: transparent; animation: brilho 1.6s linear infinite; }
+  @keyframes brilho { to { background-position: -200% 0; } }
+  .chips { display: flex; gap: 6px; flex-wrap: wrap; }
+  .chip { font-size: 12px; padding: 3px 10px; border-radius: 99px; border: 1px solid var(--linha); background: rgba(255, 255, 255, .04); animation: estoura .6s var(--mola) both; }
+  .chip.ok { color: var(--verde); border-color: rgba(62, 230, 168, .35); }
+  .chip .mais { color: var(--verde); } .chip .menos { color: var(--vermelho); }
+  @keyframes estoura { from { opacity: 0; transform: scale(.4); } }
+  .pens { margin: 6px 0 10px; padding: 12px 16px; border-radius: 16px; font-size: 14px; color: var(--suave); line-height: 1.7; }
+  .pens span { opacity: 0; animation: palavra .5s ease forwards; }
+  @keyframes palavra { from { opacity: 0; filter: blur(4px); } to { opacity: 1; filter: none; } }
+
+  /* trilho do infinito: cada acao e uma estacao */
+  .trilho { position: relative; list-style: none; margin: 8px 0 14px; padding: 0 0 0 30px; }
+  .trilho::before { content: ""; position: absolute; left: 11px; top: 6px; bottom: 6px; width: 2px; background: rgba(160, 140, 255, .18); border-radius: 2px; }
+  .trilho .pulso { position: absolute; left: 9px; width: 6px; height: 46px; border-radius: 6px; background: linear-gradient(transparent, #c056f5, #fff, #c056f5, transparent); filter: drop-shadow(0 0 8px #c056f5); opacity: 0; transition: opacity .4s; }
+  .ia.pensando .trilho .pulso { opacity: 1; animation: desce 1.8s linear infinite; }
+  @keyframes desce { from { top: -40px; } to { top: 100%; } }
+  .est { position: relative; padding: 7px 0 7px 6px; animation: entra .55s var(--suavizar) both; }
+  @keyframes entra { from { opacity: 0; transform: translateX(-14px); } }
+  .est .no { position: absolute; left: -26px; top: 9px; width: 20px; height: 20px; border-radius: 50%; display: grid; place-items: center; background: #15112b; border: 2px solid rgba(160, 140, 255, .35); }
+  .est .no svg { width: 12px; height: 12px; }
+  .est[data-estado="rodando"] .no { border-color: transparent; background: conic-gradient(from var(--ang), #7c5cff, #c056f5, #ff9a3c, transparent 70%); animation: gira 1s linear infinite; }
+  .est[data-estado="rodando"] .no::after { content: ""; position: absolute; inset: 3px; border-radius: 50%; background: #15112b; }
+  @keyframes gira { to { --ang: 360deg; } }
+  .est[data-estado="ok"] .no { border: 0; background: var(--grad); box-shadow: 0 0 14px rgba(192, 86, 245, .7); animation: pop .5s var(--mola); }
+  .est[data-estado="erro"] .no { border: 0; background: var(--vermelho); box-shadow: 0 0 14px rgba(255, 93, 122, .7); animation: treme .45s; }
+  @keyframes pop { 40% { transform: scale(1.5); } }
+  @keyframes treme { 20%, 60% { transform: translateX(-3px); } 40%, 80% { transform: translateX(3px); } }
+  .est .txt { font-size: 14px; } .est .txt b { font-weight: 600; } .est code { font-family: var(--mono); font-size: 12.5px; color: #d9cfff; }
+  .est .meta { font-size: 12px; color: var(--apagado); margin-left: 6px; }
+  .est .det { font-size: 12.5px; color: var(--suave); }
+  .est[data-estado="erro"] .det { color: #ff9db0; }
+
+  .resposta p { margin: 0 0 12px; animation: palavra .6s ease both; }
+  .resposta code { font-family: var(--mono); font-size: 13px; padding: 1px 6px; border-radius: 6px; background: rgba(160, 140, 255, .14); color: #e3dbff; }
+  .forja { position: relative; margin: 6px 0 14px; padding: 16px 18px 20px; border-radius: 16px; background: rgba(8, 6, 20, .85); border: 1px solid var(--linha); font: 13px/1.7 var(--mono); overflow: hidden; }
+  .forja .lin { white-space: pre; opacity: 0; transform: translateY(-18px); animation: assenta .5s var(--mola) forwards; }
+  @keyframes assenta { 60% { opacity: 1; } to { opacity: 1; transform: none; } }
+  .forja .kw { color: #c79bff; } .forja .tp { color: #7fd8ff; } .forja .st { color: #ffc58a; } .forja .cm { color: #6d6893; }
+  .forja .calor { position: absolute; left: 0; right: 0; bottom: 0; height: 4px; background: linear-gradient(90deg, #ff5d3c, #ff9a3c); transition: background 1.4s, box-shadow 1.4s; box-shadow: 0 0 16px #ff7a3c; }
+  .forja.fria .calor { background: linear-gradient(90deg, #3ee6a8, #6ef0ff); box-shadow: 0 0 16px #3ee6a8; }
+
+  /* caixa que respira */
+  .caixa-zona { position: absolute; left: 0; right: 0; bottom: 18px; padding: 0 28px; }
+  .caixa { position: relative; max-width: 760px; margin: 0 auto; border-radius: 22px; padding: 2px; }
+  .caixa::before { content: ""; position: absolute; inset: 0; border-radius: 22px; padding: 2px; background: conic-gradient(from var(--ang), #7c5cff, #c056f5, #ff9a3c, #7c5cff); -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask-composite: exclude; animation: gira 6s linear infinite; opacity: .55; transition: opacity .4s; }
+  .caixa.viva::before { opacity: 1; animation-duration: 1.6s; }
+  .caixa-in { position: relative; display: flex; align-items: center; gap: 14px; padding: 14px 14px 14px 20px; border-radius: 20px; background: var(--vidro-forte); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); }
+  #digita { flex: 1; min-height: 24px; color: var(--texto); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  #digita:empty::before { content: "Escreva uma tarefa de código avançado…"; color: var(--apagado); }
+  .onda { display: flex; align-items: center; gap: 3px; height: 26px; }
+  .onda i { width: 3px; height: 4px; border-radius: 3px; background: var(--grad); transition: height .12s; }
+  #tokens { font-size: 12px; color: var(--apagado); min-width: 72px; text-align: right; font-variant-numeric: tabular-nums; }
+  .enviar { width: 40px; height: 40px; border-radius: 14px; border: 0; background: var(--grad); color: #fff; display: grid; place-items: center; box-shadow: 0 6px 20px rgba(124, 92, 255, .45); }
+  .enviar.aperta { animation: pop .4s var(--mola); }
+
+  /* ---------- bancada viva ---------- */
+  .bancada { margin: 12px 12px 12px 0; border-radius: 22px; overflow: hidden; display: flex; flex-direction: column; gap: 12px; padding: 0; opacity: 0; transform: translateX(40px); transition: opacity .6s, transform .7s var(--suavizar), padding .7s; }
+  .app.trabalhando .bancada { opacity: 1; transform: none; padding: 16px; }
+  .painel { border-radius: 16px; background: rgba(8, 6, 20, .55); border: 1px solid var(--linha); padding: 12px 14px; min-width: 0; }
+  .painel h3 { margin: 0 0 8px; font-size: 11px; letter-spacing: .16em; text-transform: uppercase; color: var(--apagado); font-weight: 600; display: flex; justify-content: space-between; }
+  #mapa { position: relative; height: 128px; }
+  #mapa .arq { position: absolute; display: flex; align-items: center; gap: 6px; font: 12px var(--mono); color: var(--suave); padding: 3px 8px; border-radius: 8px; background: rgba(255, 255, 255, .04); border: 1px solid transparent; animation: nasce .7s var(--mola) both; white-space: nowrap; }
+  #mapa .arq.novo { color: var(--texto); border-color: rgba(62, 230, 168, .4); }
+  #mapa .arq.pulsa { animation: pulsaArq 1s ease 2; }
+  #mapa .arq.falta { border-color: rgba(255, 93, 122, .5); color: #ff9db0; }
+  @keyframes pulsaArq { 50% { box-shadow: 0 0 0 6px rgba(192, 86, 245, .25); border-color: #c056f5; } }
+  #mapa svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+  #mapa path { stroke: rgba(160, 140, 255, .3); fill: none; stroke-dasharray: 120; animation: traca .8s ease both; }
+  #diff { font: 12px/1.65 var(--mono); max-height: 210px; overflow: hidden; }
+  #diff .dl { white-space: pre; padding: 0 8px; border-radius: 4px; animation: entra .3s ease both; overflow: hidden; text-overflow: ellipsis; }
+  #diff .mais { background: rgba(62, 230, 168, .1); color: #a8f5d6; } #diff .menos { background: rgba(255, 93, 122, .12); color: #ffb3c1; text-decoration: line-through; text-decoration-color: rgba(255, 93, 122, .5); }
+  #diff .ctx { color: var(--apagado); }
+  #diffNome { text-transform: none; letter-spacing: 0; font-family: var(--mono); color: var(--suave); }
+  .conta b { font-weight: 600; } .conta .mais { color: var(--verde); } .conta .menos { color: var(--vermelho); }
+  .term { position: relative; flex: 1; min-height: 120px; background: #050409; overflow: hidden; }
+  .term::after { content: ""; position: absolute; inset: 0; background: repeating-linear-gradient(transparent 0 2px, rgba(255, 255, 255, .025) 2px 3px); pointer-events: none; }
+  #term { font: 12px/1.6 var(--mono); color: #b9b4d9; white-space: pre-wrap; word-break: break-all; }
+  #term .er { color: #ff8da2; } #term .okt { color: var(--verde); }
+  #term .cursor { display: inline-block; width: 7px; height: 13px; background: var(--rosa); vertical-align: -2px; animation: piscaLuz .8s infinite; }
+  .testes { display: flex; gap: 4px; margin-top: 10px; }
+  .testes i { flex: 1; height: 8px; border-radius: 4px; background: rgba(255, 255, 255, .07); transition: background .4s, box-shadow .4s, transform .4s var(--mola); }
+  .testes i.ok { background: var(--verde); box-shadow: 0 0 10px rgba(62, 230, 168, .6); transform: scaleY(1.3); }
+  .testes i.erro { background: var(--vermelho); box-shadow: 0 0 10px rgba(255, 93, 122, .7); animation: treme .45s; }
+  #placar { font-size: 12px; color: var(--suave); margin-top: 6px; }
+
+  /* ---------- Ory piloto ---------- */
+  .ory { position: fixed; z-index: 40; width: 64px; height: 64px; left: 0; top: 0; pointer-events: none; transition: transform 1.1s var(--suavizar); filter: drop-shadow(0 8px 16px rgba(124, 92, 255, .5)); }
+  .ory svg { width: 64px; height: 64px; image-rendering: pixelated; overflow: visible; }
+  .ory .corpo { animation: flutua 2.4s ease-in-out infinite; }
+  .ory.voando .corpo { animation: bate .25s ease-in-out infinite; }
+  .ory.coca .corpo { animation: coca .5s ease-in-out 3; }
+  .ory.festa .corpo { animation: festa .5s var(--mola) 4; }
+  @keyframes flutua { 50% { transform: translateY(-5px); } }
+  @keyframes bate { 50% { transform: translateY(-3px) scaleY(.95); } }
+  @keyframes coca { 25% { transform: rotate(-10deg); } 75% { transform: rotate(8deg); } }
+  @keyframes festa { 40% { transform: translateY(-16px) rotate(-8deg) scale(1.1); } }
+  .ory .carga { position: absolute; right: -10px; top: 30px; width: 22px; height: 26px; border-radius: 4px; background: var(--grad); opacity: 0; transform: scale(.4); transition: .3s var(--mola); font: 700 8px/26px var(--mono); color: #fff; text-align: center; }
+  .ory.leva .carga { opacity: 1; transform: none; }
+  .balao { position: absolute; bottom: 64px; left: 50%; transform: translateX(-50%) scale(.6); opacity: 0; padding: 5px 10px; border-radius: 12px; background: #fff; color: #17112b; font-size: 12px; font-weight: 600; white-space: nowrap; transition: .35s var(--mola); }
+  .balao.mostra { opacity: 1; transform: translateX(-50%) scale(1); }
+
+  .denovo { position: fixed; z-index: 45; right: 24px; bottom: 100px; padding: 10px 18px; border: 0; border-radius: 99px; background: var(--grad); color: #fff; font-weight: 600; cursor: pointer; opacity: 0; transform: translateY(20px); transition: .5s var(--mola); pointer-events: none; }
+  .denovo.mostra { opacity: 1; transform: none; pointer-events: auto; }
+
+  @media (max-width: 1100px) {
+    .app, .app.trabalhando { grid-template-columns: minmax(0, 1fr); }  /* rail some e a bancada vira gaveta fixa: so o palco fica no grid */
+    .rail { display: none; }
+    .bancada { position: fixed; left: 12px; right: 12px; bottom: 96px; max-height: 44vh; z-index: 30; margin: 0; transform: translateY(30px); }
+    .app.trabalhando .bancada { transform: none; }
+    .app.trabalhando .conversa { padding-bottom: 52vh; }
+    .term { min-height: 90px; } #diff { max-height: 120px; } #mapa { height: 96px; }
+  }
+  @media (max-width: 600px) {
+    .topo, .conversa, .caixa-zona { padding-left: 14px; padding-right: 14px; }
+    .ia { padding-left: 44px; } .nucleo, .nucleo svg { width: 38px; height: 38px; }
+    .onda, #tokens { display: none; }
+    .bancada .painel:first-child { display: none; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: .001s !important; animation-iteration-count: 1 !important; transition-duration: .001s !important; }
+    .nebula { animation: none; }
+  }
+</style>
+</head>
+<body>
+<canvas id="ceu"></canvas>
+<div class="nebula n1"></div><div class="nebula n2"></div><div class="nebula n3"></div>
+
+<div class="app" id="app">
+  <aside class="rail vidro">
+    <div class="marca"><svg viewBox="0 0 48 48"><defs><linearGradient id="gm" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#7c5cff"/><stop offset=".55" stop-color="#c056f5"/><stop offset="1" stop-color="#ff9a3c"/></linearGradient></defs><path fill="none" stroke="url(#gm)" stroke-width="5.2" stroke-linecap="round" d="M24 24c-4.2-5.6-7.6-8.4-11.2-8.4a8.4 8.4 0 0 0 0 16.8c3.6 0 7-2.8 11.2-8.4s7.6-8.4 11.2-8.4a8.4 8.4 0 0 1 0 16.8c-3.6 0-7-2.8-11.2-8.4z"/></svg>ORYON</div>
+    <button class="nova">+ Nova conversa</button>
+    <div class="rot">Constelação de memória</div>
+    <svg id="const" viewBox="0 0 220 150"></svg>
+    <div class="convs" id="convs"></div>
+    <div class="habil">
+      <div class="rot">Ela aprendendo</div>
+      <div>Python avançado<i><b id="hPy"></b></i></div>
+      <div>Português<i><b id="hPt"></b></i></div>
+      <div>Testes passando<i><b id="hTe"></b></i></div>
+    </div>
+  </aside>
+
+  <main class="palco">
+    <header class="topo"><h1 id="titulo">Nova conversa</h1><div id="status" class="vidro"><i></i><span>pronta</span></div></header>
+    <section class="conversa" id="conversa"></section>
+    <div class="caixa-zona">
+      <div class="caixa" id="caixa"><div class="caixa-in">
+        <div id="digita"></div>
+        <div class="onda" id="onda"></div>
+        <div id="tokens"></div>
+        <button class="enviar" id="enviar" aria-label="Enviar"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg></button>
+      </div></div>
+    </div>
+  </main>
+
+  <aside class="bancada vidro" id="bancada">
+    <div class="painel"><h3><span>Mapa do projeto</span><span id="mapaConta"></span></h3><div id="mapa"><svg id="mapaLinhas"></svg></div></div>
+    <div class="painel"><h3><span id="diffNome">diff</span><span class="conta" id="diffConta"></span></h3><div id="diff"></div></div>
+    <div class="painel term"><h3><span>Terminal</span><span id="termEstado"></span></h3><div id="term"></div><div class="testes" id="testes"></div><div id="placar"></div></div>
+  </aside>
+</div>
+
+<div class="ory" id="ory"><div class="balao" id="balao"></div><div class="corpo" id="oryCorpo"></div><div class="carga" id="carga">.py</div></div>
+<canvas id="confete"></canvas>
+<button class="denovo" id="denovo">↻ Ver de novo</button>
+
+<script>
+"use strict";
+const $ = (id) => document.getElementById(id);
+const PARADO = matchMedia("(prefers-reduced-motion: reduce)").matches;
+const espera = (ms) => new Promise((r) => setTimeout(r, PARADO ? Math.min(ms, 60) : ms));
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const LOGO = "M24 24c-4.2-5.6-7.6-8.4-11.2-8.4a8.4 8.4 0 0 0 0 16.8c3.6 0 7-2.8 11.2-8.4s7.6-8.4 11.2-8.4a8.4 8.4 0 0 1 0 16.8c-3.6 0-7-2.8-11.2-8.4z";
+
+/* ---------- ceu: estrelas que piscam e derivam ---------- */
+const ceu = $("ceu"), cx = ceu.getContext("2d");
+let estrelas = [];
+function medirCeu() {
+  ceu.width = innerWidth * devicePixelRatio; ceu.height = innerHeight * devicePixelRatio;
+  estrelas = Array.from({ length: Math.round(innerWidth * innerHeight / 7000) }, () => ({
+    x: Math.random() * ceu.width, y: Math.random() * ceu.height, r: Math.random() * 1.3 + .2,
+    f: Math.random() * Math.PI * 2, v: Math.random() * .08 + .02,
+  }));
+}
+function desenharCeu(t) {
+  cx.clearRect(0, 0, ceu.width, ceu.height);
+  for (const e of estrelas) {
+    const brilho = .35 + .65 * (0.5 + 0.5 * Math.sin(t / 900 + e.f));
+    cx.fillStyle = `rgba(220,210,255,${brilho * .8})`;
+    cx.beginPath(); cx.arc(e.x, e.y, e.r * devicePixelRatio, 0, 6.283); cx.fill();
+    if (!PARADO) { e.y -= e.v; if (e.y < 0) e.y = ceu.height; }
+  }
+}
+
+/* ---------- onda da caixa + particulas no nucleo (um laco so) ---------- */
+const onda = $("onda");
+for (let i = 0; i < 18; i++) onda.appendChild(document.createElement("i"));
+const barras = [...onda.children];
+let intensidade = 0, alvoIntensidade = 0;
+let particulas = null;  // {path, pontos:[{el,d,v}], total}
+function laco(t) {
+  desenharCeu(t);
+  intensidade += (alvoIntensidade - intensidade) * .08;
+  barras.forEach((b, i) => {
+    const h = 4 + intensidade * 20 * (0.5 + 0.5 * Math.sin(t / 110 + i * .9) * Math.sin(t / 370 + i * .35));
+    b.style.height = `${Math.max(4, h)}px`;
+  });
+  if (particulas && !PARADO) {
+    for (const p of particulas.pontos) {
+      p.d = (p.d + p.v) % particulas.total;
+      const pt = particulas.path.getPointAtLength(p.d);
+      p.el.setAttribute("cx", pt.x); p.el.setAttribute("cy", pt.y);
+    }
+  }
+  requestAnimationFrame(laco);
+}
+
+/* ---------- confete do 7/7 ---------- */
+const conf = $("confete"), ccx = conf.getContext("2d");
+function confete(x, y) {
+  if (PARADO) return;
+  conf.width = innerWidth; conf.height = innerHeight;
+  const cores = ["#7c5cff", "#c056f5", "#ff9a3c", "#3ee6a8", "#ffd25e", "#fff"];
+  let pecas = Array.from({ length: 140 }, () => {
+    const a = Math.random() * Math.PI * 2, v = Math.random() * 9 + 3;
+    return { x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v - 6, r: Math.random() * 6 + 3, c: cores[(Math.random() * cores.length) | 0], g: Math.random() * 6, vida: 1 };
+  });
+  const passo = () => {
+    ccx.clearRect(0, 0, conf.width, conf.height);
+    pecas = pecas.filter((p) => p.vida > 0);
+    for (const p of pecas) {
+      p.vy += .32; p.vx *= .985; p.x += p.vx; p.y += p.vy; p.g += .2; p.vida -= .009;
+      ccx.save(); ccx.globalAlpha = Math.max(0, p.vida); ccx.translate(p.x, p.y); ccx.rotate(p.g);
+      ccx.fillStyle = p.c; ccx.fillRect(-p.r / 2, -p.r / 4, p.r, p.r / 2); ccx.restore();
+    }
+    if (pecas.length) requestAnimationFrame(passo);
+  };
+  requestAnimationFrame(passo);
+}
+
+/* ---------- Ory piloto ---------- */
+const ORY = `<svg viewBox="0 0 22 16" aria-hidden="true"><g><rect x="3" y="11" width="2" height="1" fill="#7c5cff"/><rect x="2" y="10" width="2" height="1" fill="#7c5cff"/><rect x="1" y="9" width="2" height="1" fill="#7c5cff"/><rect x="0" y="8" width="2" height="1" fill="#ff9a3c"/><rect x="6" y="2" width="1" height="1" fill="#c056f5"/><rect x="5" y="3" width="3" height="1" fill="#c056f5"/><rect x="4" y="4" width="4" height="1" fill="#c056f5"/><rect x="4" y="5" width="5" height="1" fill="#c056f5"/><rect x="5" y="6" width="4" height="1" fill="#c056f5"/><rect x="5" y="4" width="1" height="2" fill="#9d47e0"/><rect x="7" y="3" width="1" height="3" fill="#9d47e0"/><rect x="7" y="7" width="4" height="1" fill="#7c5cff"/><rect x="5" y="8" width="7" height="1" fill="#7c5cff"/><rect x="4" y="9" width="8" height="1" fill="#7c5cff"/><rect x="4" y="10" width="8" height="1" fill="#7c5cff"/><rect x="5" y="11" width="6" height="1" fill="#7c5cff"/><rect x="6" y="12" width="4" height="1" fill="#7c5cff"/><rect x="8" y="9" width="3" height="1" fill="#ffc58a"/><rect x="7" y="10" width="4" height="1" fill="#ffc58a"/><rect x="7" y="11" width="3" height="1" fill="#ffc58a"/><rect x="10" y="3" width="4" height="1" fill="#7c5cff"/><rect x="9" y="4" width="6" height="1" fill="#7c5cff"/><rect x="9" y="5" width="7" height="1" fill="#7c5cff"/><rect x="9" y="6" width="7" height="1" fill="#7c5cff"/><rect x="10" y="7" width="4" height="1" fill="#7c5cff"/><rect x="10" y="2" width="1" height="1" fill="#ff9a3c"/><rect x="13" y="2" width="1" height="1" fill="#ff9a3c"/><rect x="12" y="4" width="1.2" height="1.6" fill="#17112b"/><rect x="12.5" y="4" width=".5" height=".5" fill="#fff"/><rect x="11" y="6" width="1" height=".8" fill="#ffb3c7"/><rect x="13" y="7" width="2" height=".6" fill="#17112b"/><rect x="6" y="13" width="1.5" height="2" fill="#5b3fd6"/><rect x="9" y="13" width="1.5" height="2" fill="#5b3fd6"/></g></svg>`;
+const ory = $("ory");
+$("oryCorpo").innerHTML = ORY;
+function oryPara(el, dx = 0, dy = 0) {
+  const r = el.getBoundingClientRect();
+  ory.style.transform = `translate(${Math.round(r.left + r.width / 2 - 32 + dx)}px, ${Math.round(r.top - 58 + dy)}px)`;
+}
+function oryEstado(nome, ms = 0) {
+  ory.classList.remove("voando", "coca", "festa");
+  if (nome) ory.classList.add(nome);
+  if (ms) setTimeout(() => ory.classList.remove(nome), ms);
+}
+function oryFala(texto, ms = 1800) {
+  const b = $("balao"); b.textContent = texto; b.classList.add("mostra");
+  clearTimeout(b._t); b._t = setTimeout(() => b.classList.remove("mostra"), ms);
+}
+async function oryLeva(nome) {
+  $("carga").textContent = nome.endsWith(".py") ? ".py" : "…";
+  oryEstado("voando"); ory.classList.add("leva");
+  oryPara($("digita"), -120, 10);
+  await espera(500);
+  oryPara($("mapa"), 0, 30);
+  await espera(1100);
+  ory.classList.remove("leva"); oryEstado(null);
+}
+
+/* ---------- constelacao de memoria ---------- */
+const CONST = [
+  { x: 24, y: 30, r: 3, t: "jogo de nave" }, { x: 74, y: 18, r: 2.4, t: "" }, { x: 110, y: 62, r: 4, t: "API async" },
+  { x: 168, y: 36, r: 2.6, t: "" }, { x: 86, y: 116, r: 2.6, t: "parser" }, { x: 150, y: 120, r: 3.2, t: "" },
+];
+const LIGAS = [[0, 1], [1, 2], [2, 3], [2, 4], [4, 5]];
+function desenharConstelacao() {
+  const s = $("const");
+  s.innerHTML = LIGAS.map(([a, b]) => `<path class="liga" d="M${CONST[a].x} ${CONST[a].y}L${CONST[b].x} ${CONST[b].y}"/>`).join("") +
+    CONST.map((e, i) => `<circle class="estrela" cx="${e.x}" cy="${e.y}" r="${e.r}" fill="${["#7c5cff", "#c056f5", "#ff9a3c"][i % 3]}" opacity=".9"/>${e.t ? `<text x="${e.x + 7}" y="${e.y + 3}">${e.t}</text>` : ""}`).join("");
+  $("convs").innerHTML = ["API async com retry", "parser de expressões", "jogo de nave (Unity)"].map((t) => `<div>${t}</div>`).join("");
+}
+function memoriaNova() {
+  const s = $("const"), x = 196, y = 92;
+  s.insertAdjacentHTML("beforeend", `<path class="liga nova-liga" d="M${CONST[2].x} ${CONST[2].y}L${x} ${y}"/><circle class="estrela nasce" cx="${x}" cy="${y}" r="4.5" fill="#3ee6a8"/><text x="${x - 52}" y="${y + 16}">cache LRU</text>`);
+  $("convs").insertAdjacentHTML("afterbegin", `<div class="ativa">cache LRU assíncrono</div>`);
+}
+
+/* ---------- conversa ---------- */
+const conversa = $("conversa");
+const rolar = () => { conversa.scrollTop = conversa.scrollHeight; };
+const ICONES = {
+  listar: '<path d="M3 7h6l2 2h10v10H3z" stroke="#fff" stroke-width="2.4" fill="none"/>',
+  ler: '<circle cx="12" cy="12" r="3" fill="#fff"/><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z" stroke="#fff" stroke-width="2.2" fill="none"/>',
+  criar: '<path d="M12 5v14M5 12h14" stroke="#fff" stroke-width="3" stroke-linecap="round"/>',
+  editar: '<path d="M4 20l4-1 11-11-3-3L5 16z" stroke="#fff" stroke-width="2.4" fill="none"/>',
+  testar: '<path d="M9 3h6M10 3v6l-5 9a2 2 0 0 0 2 3h10a2 2 0 0 0 2-3l-5-9V3" stroke="#fff" stroke-width="2.2" fill="none"/>',
+  passo: '<circle cx="12" cy="12" r="4" fill="#fff"/>',
+};
+function novaIA() {
+  const el = document.createElement("div");
+  el.className = "bloco ia pensando";
+  el.innerHTML = `
+    <div class="nucleo"><svg viewBox="0 0 48 48"><defs><linearGradient id="gn" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#7c5cff"/><stop offset=".55" stop-color="#c056f5"/><stop offset="1" stop-color="#ff9a3c"/></linearGradient></defs>
+      <path class="base" fill="none" stroke-width="5" d="${LOGO}"/><path class="traco" id="caminhoNucleo" fill="none" stroke="url(#gn)" stroke-width="5.2" stroke-linecap="round" d="${LOGO}"/>
+      ${[0, 1, 2, 3, 4].map((i) => `<circle class="faisca" r="${1.6 - i * .2}" fill="${["#fff", "#ffd25e", "#c056f5", "#ff9a3c", "#7c5cff"][i]}"/>`).join("")}</svg></div>
+    <div class="cab"><span class="agora">Pensando</span><span class="tempo"></span><span class="chips"></span></div>
+    <div class="pens vidro"></div>
+    <ul class="trilho"><span class="pulso"></span></ul>
+    <div class="resposta"></div>`;
+  conversa.appendChild(el);
+  const caminho = el.querySelector("#caminhoNucleo");
+  caminho.removeAttribute("id");
+  particulas = { path: caminho, total: caminho.getTotalLength(), pontos: [...el.querySelectorAll(".faisca")].map((c, i) => ({ el: c, d: i * 9, v: .9 + i * .12 })) };
+  const t0 = performance.now();
+  el._relogio = setInterval(() => { el.querySelector(".tempo").textContent = `${Math.floor((performance.now() - t0) / 1000)}s`; }, 250);
+  rolar();
+  return el;
+}
+function agora(el, texto) {
+  const a = el.querySelector(".agora");
+  a.style.opacity = 0;
+  setTimeout(() => { a.textContent = texto; a.style.opacity = 1; }, 180);
+  $("status").querySelector("span").textContent = texto.toLowerCase();
+}
+async function pensar(el, texto) {
+  const caixa = el.querySelector(".pens");
+  const palavras = texto.split(/(\s+)/);
+  for (const p of palavras) {
+    if (!p.trim()) { caixa.append(p); continue; }
+    const s = document.createElement("span"); s.textContent = p; caixa.appendChild(s);
+    await espera(p.endsWith(".") || p.endsWith(":") ? 120 : 34);
+    if (caixa.textContent.length % 60 < 6) rolar();
+  }
+}
+function estacao(el, tipo, html) {
+  const li = document.createElement("li");
+  li.className = "est"; li.dataset.estado = tipo === "passo" ? "ok" : "rodando";
+  li.innerHTML = `<span class="no"><svg viewBox="0 0 24 24">${ICONES[tipo] || ICONES.passo}</svg></span><span class="txt">${html}</span><span class="meta"></span><div class="det"></div>`;
+  el.querySelector(".trilho").appendChild(li);
+  li._t0 = performance.now();
+  rolar();
+  return li;
+}
+function fechar(li, estado, det = "") {
+  li.dataset.estado = estado;
+  li.querySelector(".meta").textContent = `${((performance.now() - li._t0) / 1000).toFixed(1)}s`;
+  if (det) li.querySelector(".det").innerHTML = det;
+}
+
+/* ---------- bancada ---------- */
+const POS = { "projeto/": [8, 6], "pyproject.toml": [150, 6], "README.md": [150, 40], "cache.py": [30, 62], "test_cache.py": [150, 96] };
+function arquivo(nome, classe = "") {
+  const [x, y] = POS[nome];
+  const mapa = $("mapa");
+  if (nome !== "projeto/") {
+    $("mapaLinhas").insertAdjacentHTML("beforeend", `<path d="M44 26 C 44 ${y + 10}, ${x - 30} ${y + 10}, ${x} ${y + 12}"/>`);
+  }
+  const d = document.createElement("div");
+  d.className = `arq ${classe}`; d.dataset.nome = nome; d.style.left = `${x}px`; d.style.top = `${y}px`;
+  d.textContent = (nome.endsWith("/") ? "▸ " : "• ") + nome;
+  mapa.appendChild(d);
+  $("mapaConta").textContent = `${mapa.querySelectorAll(".arq").length} itens`;
+  return d;
+}
+const marcar = (nome, classe) => { const d = $("mapa").querySelector(`[data-nome="${nome}"]`); if (d) { d.classList.remove(classe); void d.offsetWidth; d.classList.add(classe); } };
+function contar(el, ate, ms = 900) {
+  const t0 = performance.now();
+  const passo = (t) => { const k = Math.min(1, (t - t0) / ms); el.textContent = Math.round(ate * (1 - Math.pow(1 - k, 3))); if (k < 1) requestAnimationFrame(passo); };
+  requestAnimationFrame(passo);
+}
+async function mostrarDiff(nome, linhas, mais, menos) {
+  $("diffNome").textContent = nome;
+  $("diffConta").innerHTML = `<b class="mais">+<span>0</span></b> <b class="menos">−<span>0</span></b>`;
+  const [m1, m2] = $("diffConta").querySelectorAll("span");
+  contar(m1, mais); contar(m2, menos);
+  const d = $("diff"); d.innerHTML = "";
+  for (const [tipo, texto] of linhas) {
+    d.insertAdjacentHTML("beforeend", `<div class="dl ${tipo === "+" ? "mais" : tipo === "-" ? "menos" : "ctx"}">${tipo} ${esc(texto)}</div>`);
+    if (d.children.length > 11) d.firstElementChild.remove();
+    await espera(70);
+  }
+}
+async function terminal(linhas, estado) {
+  const t = $("term"); t.innerHTML = "";
+  $("termEstado").textContent = "rodando…";
+  for (const l of linhas) {
+    const cls = /FAILED|assert|Error|failed/.test(l) ? "er" : /passed/.test(l) ? "okt" : "";
+    t.insertAdjacentHTML("beforeend", `<span class="${cls}">${esc(l)}</span>\n`);
+    await espera(90);
+  }
+  t.insertAdjacentHTML("beforeend", `<span class="cursor"></span>`);
+  $("termEstado").textContent = estado;
+}
+async function placar(passaram, total, falha) {
+  const box = $("testes"); box.innerHTML = "";
+  for (let i = 0; i < total; i++) box.appendChild(document.createElement("i"));
+  for (let i = 0; i < total; i++) {
+    await espera(140);
+    box.children[i].className = falha !== undefined && i === falha ? "erro" : "ok";
+  }
+  $("placar").textContent = `${passaram} de ${total} testes passaram`;
+}
+
+/* ---------- caixa ---------- */
+async function digitar(texto) {
+  const d = $("digita"); d.textContent = "";
+  for (const c of texto) { d.textContent += c; await espera(28 + Math.random() * 40); }
+  await espera(350);
+  $("enviar").classList.remove("aperta"); void $("enviar").offsetWidth; $("enviar").classList.add("aperta");
+  await espera(200);
+  d.textContent = "";
+}
+function tokens(n) { $("tokens").textContent = n ? `${n} tokens` : ""; }
+
+/* ---------- roteiro da demo ---------- */
+const PEDIDO = "cria um cache LRU assíncrono com TTL e testes";
+const PENSAMENTO = "O pedido é um cache LRU assíncrono com TTL e testes. OrderedDict dá o LRU em O(1): move_to_end no acerto e popitem(last=False) pra despejar. O TTL usa time.monotonic com relógio injetável, tipado por Protocol, pro teste não depender de sleep. Carga única por chave: N corrotinas pedindo a mesma chave ausente esperam numa asyncio.Lock e só uma carrega. Vou olhar o projeto antes de criar.";
+const CACHE = [
+  ["+", "from collections import OrderedDict"], ["+", "from dataclasses import dataclass"], ["+", "from typing import Generic, Protocol, TypeVar"],
+  ["+", ""], ["+", "K = TypeVar(\"K\"); V = TypeVar(\"V\")"], ["+", ""], ["+", "@dataclass(slots=True)"], ["+", "class _Entrada(Generic[V]):"],
+  ["+", "    valor: V"], ["+", "    expira_em: float"], ["+", ""], ["+", "class CacheLRU(Generic[K, V]):"], ["+", "    def _ler(self, chave: K) -> V | None:"],
+  ["+", "        if self._relogio() > entrada.expira_em:"], ["+", "            del self._dados[chave]"], ["@", "… +126 linhas"],
+];
+const TESTES = [["+", "import asyncio, pytest"], ["+", "from cache import CacheLRU"], ["+", ""], ["+", "def test_expira_exatamente_no_ttl() -> None:"], ["+", "    relogio = RelogioFalso()"], ["+", "    cache = CacheLRU(capacidade=2, ttl=10.0, relogio=relogio)"], ["+", "    cache.definir(\"a\", 1); relogio.avancar(10.0)"], ["+", "    assert cache.obter(\"a\") is None"], ["@", "… +106 linhas, 7 testes"]];
+const SAIDA_FALHA = ["$ pytest -q", "..F....", "", "FAILED test_cache.py::test_expira_exatamente_no_ttl", "    assert cache.obter(\"a\") is None", "E   assert 1 is None", "1 failed, 6 passed in 0.07s"];
+const SAIDA_OK = ["$ pytest -q", ".......", "7 passed in 0.05s"];
+const CODIGO = [
+  '<span class="kw">class</span> <span class="tp">CacheLRU</span>(<span class="tp">Generic</span>[K, V]):',
+  '    <span class="kw">async def</span> obter_ou_carregar(<span class="kw">self</span>, chave: K, carregar: Carregador[K, V]) -> V:',
+  '        <span class="kw">if</span> (valor := <span class="kw">self</span>._ler(chave)) <span class="kw">is not None</span>:',
+  '            <span class="kw">return</span> valor',
+  '        trava = <span class="kw">self</span>._travas.setdefault(chave, asyncio.<span class="tp">Lock</span>())',
+  '        <span class="kw">async with</span> trava:  <span class="cm"># so uma corrotina carrega</span>',
+  '            <span class="kw">if</span> (valor := <span class="kw">self</span>._ler(chave)) <span class="kw">is None</span>:',
+  '                valor = <span class="kw">await</span> carregar(chave)',
+  '                <span class="kw">self</span>._gravar(chave, valor)',
+  '            <span class="kw">return</span> valor',
+];
+
+let rodando = false;
+async function demo() {
+  if (rodando) return;
+  rodando = true;
+  $("denovo").classList.remove("mostra");
+  conversa.innerHTML = ""; $("mapa").innerHTML = '<svg id="mapaLinhas"></svg>'; $("diff").innerHTML = ""; $("term").innerHTML = "";
+  $("testes").innerHTML = ""; $("placar").textContent = ""; $("diffConta").innerHTML = ""; $("diffNome").textContent = "diff"; $("termEstado").textContent = "";
+  $("app").classList.remove("trabalhando"); desenharConstelacao(); tokens(0);
+  $("hPy").style.width = "58%"; $("hPt").style.width = "74%"; $("hTe").style.width = "38%";
+  $("titulo").textContent = "Nova conversa";
+  oryEstado(null); oryPara($("caixa"), 260, 6);
+  await espera(900);
+
+  await digitar(PEDIDO);
+  conversa.insertAdjacentHTML("beforeend", `<div class="bloco eu"><p>${esc(PEDIDO)}</p></div>`);
+  $("titulo").textContent = "Cache LRU assíncrono";
+  $("caixa").classList.add("viva"); $("status").classList.add("vivo");
+  alvoIntensidade = .5;
+  const el = novaIA();
+  agora(el, "Pensando");
+  oryFala("Hmm, deixa eu pensar…");
+  await pensar(el, PENSAMENTO);
+  estacao(el, "passo", "Plano: <code>cache.py</code> com o CacheLRU e <code>test_cache.py</code> com 7 testes; rodo o pytest antes de entregar.");
+  await espera(500);
+
+  $("app").classList.add("trabalhando");
+  await espera(700);
+  oryPara($("mapa"), 0, 20);
+  let li = estacao(el, "listar", "Listando <code>projeto/</code>"); agora(el, "Listando projeto/");
+  arquivo("projeto/"); await espera(300); arquivo("pyproject.toml"); await espera(200); arquivo("README.md");
+  await espera(400); fechar(li, "ok", "2 itens: pyproject.toml, README.md");
+
+  li = estacao(el, "ler", "Lendo <code>cache.py</code>"); agora(el, "Lendo cache.py");
+  await espera(600); fechar(li, "erro", "não existe ainda: vou criar");
+
+  li = estacao(el, "criar", "Criando <code>cache.py</code>"); agora(el, "Criando cache.py");
+  alvoIntensidade = 1;
+  await oryLeva("cache.py");
+  arquivo("cache.py", "novo");
+  let n = 0; const contTok = setInterval(() => tokens(n += 23), 60);
+  await mostrarDiff("projeto/cache.py", CACHE, 141, 0);
+  fechar(li, "ok", '<span style="color:var(--verde)">+141</span> linhas · Generic, dataclass(slots), asyncio.Lock');
+
+  li = estacao(el, "criar", "Criando <code>test_cache.py</code>"); agora(el, "Criando test_cache.py");
+  await oryLeva("test_cache.py");
+  arquivo("test_cache.py", "novo");
+  await mostrarDiff("projeto/test_cache.py", TESTES, 114, 0);
+  clearInterval(contTok);
+  fechar(li, "ok", '<span style="color:var(--verde)">+114</span> linhas · 7 testes');
+
+  li = estacao(el, "testar", "Rodando <code>pytest -q</code>"); agora(el, "Rodando os testes");
+  alvoIntensidade = .6;
+  oryPara($("term"), 40, 10);
+  await terminal(SAIDA_FALHA, "falhou");
+  await placar(6, 7, 2);
+  fechar(li, "erro", "6 de 7 passaram · falhou <code>test_expira_exatamente_no_ttl</code>");
+  oryEstado("coca", 1600); oryFala("Ué… borda do TTL?", 2000);
+  await espera(1400);
+
+  li = estacao(el, "passo", "O teste está certo: em <code>t + ttl</code> a entrada já expirou. O erro é do código: <code>&gt;</code> onde devia ser <code>&gt;=</code>.");
+  await espera(900);
+  li = estacao(el, "editar", "Editando <code>cache.py</code>"); agora(el, "Corrigindo cache.py");
+  marcar("cache.py", "pulsa");
+  await mostrarDiff("projeto/cache.py", [["@", "@@ CacheLRU._ler @@"], [" ", "    def _ler(self, chave: K) -> V | None:"], ["-", "        if self._relogio() > entrada.expira_em:"], ["+", "        if self._relogio() >= entrada.expira_em:"], [" ", "            del self._dados[chave]"]], 1, 1);
+  fechar(li, "ok", "1 linha: <code>&gt;</code> virou <code>&gt;=</code>");
+
+  li = estacao(el, "testar", "Rodando <code>pytest -q</code> de novo"); agora(el, "Rodando os testes");
+  await terminal(SAIDA_OK, "concluído");
+  await placar(7, 7);
+  fechar(li, "ok", '<span style="color:var(--verde)">7 de 7 passaram</span>');
+  oryEstado("festa", 2200); oryFala("7 de 7! 🎉", 2200);
+  const r = $("placar").getBoundingClientRect();
+  confete(r.left + r.width / 2, r.top);
+
+  // resposta: raciocinio fecha, a resposta entra e o codigo e forjado
+  await espera(900);
+  clearInterval(el._relogio);
+  el.classList.remove("pensando"); el.classList.add("pronta");
+  particulas = null; alvoIntensidade = .15;
+  agora(el, "Pensou por 23s");
+  el.querySelector(".tempo").textContent = "";
+  el.querySelector(".pens").style.display = "none";
+  const chips = el.querySelector(".chips");
+  chips.innerHTML = `<span class="chip">2 arquivos</span><span class="chip"><span class="mais">+<b>0</b></span> <span class="menos">−<b>0</b></span></span><span class="chip ok">7/7 testes</span>`;
+  const [c1, c2] = chips.querySelectorAll("b"); contar(c1, 256); contar(c2, 1);
+  const resp = el.querySelector(".resposta");
+  resp.innerHTML = `<p>Criei o <code>CacheLRU</code> em <code>projeto/cache.py</code>: LRU em O(1) com <code>OrderedDict</code>, TTL com <code>time.monotonic</code> e relógio injetável, e carga única por chave com uma <code>asyncio.Lock</code> por chave: com N corrotinas pedindo a mesma chave, o carregador roda uma vez só.</p>`;
+  rolar(); await espera(500);
+  const forja = document.createElement("div"); forja.className = "forja";
+  forja.innerHTML = CODIGO.map((l, i) => `<div class="lin" style="animation-delay:${i * 90}ms">${l}</div>`).join("") + '<div class="calor"></div>';
+  resp.appendChild(forja); rolar();
+  await espera(CODIGO.length * 90 + 900);
+  forja.classList.add("fria");
+  resp.insertAdjacentHTML("beforeend", `<p style="animation-delay:.2s">O primeiro pytest pegou um erro de borda no TTL; corrigi a linha e rodei de novo: <b>7 de 7 passando</b>.</p>`);
+  rolar();
+  $("caixa").classList.remove("viva"); $("status").classList.remove("vivo"); $("status").querySelector("span").textContent = "pronta";
+  tokens(0);
+  memoriaNova();
+  $("hPy").style.width = "61%"; $("hTe").style.width = "44%";
+  oryPara($("caixa"), 260, 6);
+  await espera(1200);
+  $("denovo").classList.add("mostra");
+  rodando = false;
+  setTimeout(() => { if (!rodando && $("denovo").classList.contains("mostra")) demo(); }, 12000);
+}
+
+$("denovo").addEventListener("click", demo);
+addEventListener("resize", () => { medirCeu(); if (!ory.classList.contains("voando")) oryPara($("caixa"), 260, 6); });
+medirCeu(); desenharConstelacao(); requestAnimationFrame(laco);
+demo();
+</script>
+</body>
+</html>
