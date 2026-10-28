@@ -68,7 +68,8 @@
     </div>
     <div class="passos-ios" id="passosOutro" hidden>Abra o menu do navegador (<b>⋮</b>) e toque em <b>Instalar app</b> ou <b>Adicionar à tela inicial</b>.</div>
     <button class="botao leve" id="btnAbrir">Abrir agora, sem instalar</button>
-    <div class="nota">Funciona com o PC da ORYON ligado. <a href="../">Voltar ao site</a></div>
+    <button class="botao leve" id="btnEntrar"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="15" r="4"/><path d="M10.8 12.2 20 3M16 7l3 3M18 5l2 2"/></svg>Entrar como dono (Google)</button>
+    <div class="nota">Funciona com o PC da ORYON ligado. Visitante entra sem conta. <a href="../">Voltar ao site</a></div>
   </section>
 
   <!-- conectando no PC -->
@@ -107,6 +108,9 @@ const PARADO = matchMedia("(prefers-reduced-motion: reduce)").matches;
 const $ = (id) => document.getElementById(id);
 const INSTALADO = matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
 const IOS = /iPhone|iPad|iPod/i.test(navigator.userAgent) || (/Macintosh/.test(navigator.userAgent) && navigator.maxTouchPoints > 1);
+// ?entrar (o botao, o atalho do icone): vai pro login do Google no PC em vez de entrar como visitante.
+// O link do tunel muda a cada vez, entao so daqui o dono acha o /entrar do link atual.
+let querEntrar = new URLSearchParams(location.search).has("entrar");
 
 function mostrar(id) { document.querySelectorAll(".tela").forEach((t) => t.classList.toggle("ativa", t.id === id)); }
 function status(texto) { $("status").innerHTML = `<span class="pontos">${texto}</span>`; }
@@ -148,9 +152,9 @@ async function conectar() {
   if (!url || !LINK_VALIDO.test(url)) return dormir("A ORYON está dormindo", "O PC onde ela roda está desligado ou sem o link ligado agora. Assim que ele ligar, ela acorda.");
   status("Acordando a ORYON");
   if (!(await pcResponde(url))) return dormir("A ORYON está dormindo", "Achei o endereço do PC, mas ele não respondeu. Pode estar desligando ou sem internet.");
-  status("Conectada! Abrindo");
+  status(querEntrar ? "Conectada! Indo pro login do Google" : "Conectada! Abrindo");
   await espera(PARADO ? 0 : 500);
-  location.replace(`${url}/?origem=app`);
+  location.replace(querEntrar ? `${url}/entrar` : `${url}/?origem=app`);
 }
 
 // instalar: Android/Chrome avisa com beforeinstallprompt; no iPhone mostra o passo a passo
@@ -167,12 +171,13 @@ $("btnInstalar").addEventListener("click", async () => {
   pedidoInstalar = null; $("btnInstalar").hidden = true;
 });
 addEventListener("appinstalled", () => { $("btnInstalar").hidden = true; });
-$("btnAbrir").addEventListener("click", conectar);
+$("btnAbrir").addEventListener("click", () => { querEntrar = false; conectar(); });
+$("btnEntrar").addEventListener("click", () => { querEntrar = true; conectar(); });
 $("btnDenovo").addEventListener("click", conectar);
 addEventListener("online", () => { if ($("telaDormindo").classList.contains("ativa")) conectar(); });
 
 if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});
-if (INSTALADO) conectar();
+if (INSTALADO || querEntrar) conectar();
 else {
   mostrar("telaInstalar");
   if (IOS) $("passosIos").hidden = false;
